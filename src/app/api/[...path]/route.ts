@@ -59,7 +59,7 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ path: string[]
       return NextResponse.json({ ok: true });
     }
     if (path === 'password' && req.method === 'POST') {
-      const data = z.object({ current: z.string().max(128), password: v.password }).parse(await req.json());
+      const data = z.object({ current: z.string().max(128), password: v.passwordForRole(user.role) }).parse(await req.json());
       if (!await compare(data.current, user.passwordHash)) return fail('Senha atual incorreta.');
       if (data.current === data.password) return fail('Escolha uma senha diferente da inicial.');
       await db.$transaction([db.user.update({ where: { id: user.id }, data: { passwordHash: await hash(data.password, 12), mustChangePassword: false } }), db.session.deleteMany({ where: { userId: user.id } })]);
@@ -88,7 +88,7 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ path: string[]
       if (!course || !teacher || (user.role === 'TEACHER' && teacher.id !== user.id)) return fail('Curso ou professor não permitido.', 403);
       resourceId = (await db.class.create({ data })).id;
     } else if (path === 'users' && req.method === 'POST') {
-      const data = v.person.extend({ classId: z.string().optional() }).parse(await req.json());
+      const data = v.person.safeExtend({ classId: z.string().optional() }).parse(await req.json());
       if (user.role === 'TEACHER' && data.role !== 'STUDENT') return fail('Somente administradores cadastram professores.', 403);
       if (data.classId && !await db.class.findFirst({ where: { ...classWhere, id: data.classId } })) return fail('Turma não permitida.', 403);
       if (user.role === 'TEACHER' && !data.classId) return fail('Selecione uma turma para o aluno.');
@@ -101,9 +101,10 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ path: string[]
       if (!classroom || !student) return fail('Turma ou aluno não permitido.', 403);
       resourceId = (await db.enrollment.create({ data })).id;
     } else if (path === 'reset-password' && req.method === 'POST') {
-      const data = z.object({ userId: z.string(), password: v.password }).parse(await req.json());
+      const data = z.object({ userId: z.string(), password: v.studentPassword }).parse(await req.json());
       const target = await db.user.findFirst({ where: { id: data.userId, institutionId, ...(user.role === 'TEACHER' ? { role: 'STUDENT', enrollments: { some: { class: { teacherId: user.id } } } } : {}) } });
       if (!target || target.id === user.id) return fail('Usuário não permitido.', 403);
+      v.passwordForRole(target.role).parse(data.password);
       await db.$transaction([db.user.update({ where: { id: target.id }, data: { passwordHash: await hash(data.password, 12), mustChangePassword: true } }), db.session.deleteMany({ where: { userId: target.id } })]);
       resourceId = target.id;
     } else return fail('Operação não encontrada.', 404);

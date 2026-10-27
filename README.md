@@ -27,6 +27,8 @@ Se utilizar um servidor PostgreSQL existente, configure `DATABASE_URL` e omita o
 4. Aluno entra e troca sua senha inicial. Visualiza apenas as próprias turmas.
 5. Professor ou administrador pode redefinir uma senha temporária individual. A operação encerra as sessões do usuário e exige nova troca de senha.
 
+Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pessoal e na redefinição pelo professor/administrador. Professores e administradores continuam com mínimo de **10 caracteres**. A troca obrigatória no primeiro acesso e após redefinição continua ativa.
+
 ## Área simplificada do aluno
 
 O aluno tem um início próprio, separado do painel de gestão. Os acessos principais são **Apostilas**, **Provas e atividades** e **Minhas correções**. No celular, ficam em uma barra de navegação na parte inferior da tela, com botões grandes e nomes curtos.

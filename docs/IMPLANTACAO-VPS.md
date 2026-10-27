@@ -14,6 +14,7 @@ Após a validação da implantação, o usuário solicitou e confirmou a limpeza
 - Nginx recebe conexões nas portas 80 e 443 e redireciona HTTP para HTTPS. Aplicação e PostgreSQL escutam somente em loopback.
 - Uploads aceitam até 5 MB (5.000.000 bytes) por arquivo. O proxy permite corpos de 6 MiB e a aplicação reserva até 5,5 MB para o multipart, validando separadamente o tamanho real do arquivo.
 - Firewall permite SSH, HTTP e HTTPS. Serviços habilitados na inicialização do servidor.
+- Alunos podem usar senhas a partir de 4 caracteres; professores e administradores mantêm mínimo de 10. A validação usa o perfil registrado no servidor na troca e na redefinição, e preserva a troca obrigatória de senhas temporárias.
 
 Os cadastros, senhas protegidas por hash e materiais existentes no schema local `escola` foram transferidos. Sessões antigas foram encerradas na cópia de produção; é necessário entrar novamente. O schema de testes local não é publicado. O banco da VPS passa a ser independente do banco local.
 

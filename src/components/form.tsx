@@ -21,6 +21,6 @@ export function Form({ endpoint, children, onSuccess, label = 'Salvar', transfor
   }
   return <form onSubmit={submit}>{children}{error && <p className="error" role="alert">{error}</p>}<button disabled={busy} type="submit">{busy ? 'Salvando…' : label}</button></form>;
 }
-export function Field({ label, name, type = 'text', required = true, placeholder }: { label: string; name: string; type?: string; required?: boolean; placeholder?: string }) {
-  return <label>{label}<input name={name} type={type} required={required} maxLength={type === 'password' ? 128 : 120} minLength={type === 'password' ? 10 : undefined} autoComplete={type === 'password' ? 'new-password' : undefined} placeholder={placeholder} /></label>;
+export function Field({ label, name, type = 'text', required = true, placeholder, minLength }: { label: string; name: string; type?: string; required?: boolean; placeholder?: string; minLength?: number }) {
+  return <label>{label}<input name={name} type={type} required={required} maxLength={type === 'password' ? 128 : 120} minLength={minLength ?? (type === 'password' ? 10 : undefined)} autoComplete={type === 'password' ? 'new-password' : undefined} placeholder={placeholder} /></label>;
 }
