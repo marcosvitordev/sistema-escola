@@ -47,6 +47,8 @@ Os conteúdos são atualizados ao retornar à janela, a cada 30 segundos enquant
 
 Abra **Turmas → Abrir turma → Nova aula**. Crie a aula em rascunho, envie um PDF e selecione **Publicar aula**. Os alunos matriculados podem abrir o material, navegar pelas páginas, inserir respostas, movê-las, mudar fonte/cor e destacar regiões. O original não é alterado.
 
+Links incorporados ao PDF são clicáveis: sites abrem em outra aba, e links internos levam à página indicada. Funcionam na prévia do professor, durante a edição e após a entrega, com zoom, rotação e toque no celular. Clicar em um link não cria uma resposta. Endereços escritos apenas como texto, sem um link incorporado ao PDF, não são convertidos automaticamente.
+
 As anotações são individuais e salvas após 700 ms de pausa. Cada atualização exige a revisão atual; conflitos preservam o rascunho e exigem escolha explícita. Rascunhos temporários são separados por usuário/documento/aba no navegador. A sincronização é repetida ao reconectar e a cada cinco segundos quando existem alterações pendentes.
 
 Para renomear um PDF já enviado, abra **Turma → Aulas e apostilas → Renomear**, ao lado da apostila. Digite o nome e selecione **Salvar nome**. O professor responsável e o administrador podem renomear; arquivo, respostas, entregas e correções permanecem vinculados à mesma apostila. O nome atualizado aparece para os alunos e nos downloads, incluindo a exportação respondida.

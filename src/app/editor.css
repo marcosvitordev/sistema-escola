@@ -2,6 +2,11 @@
 @media(max-width:760px){.editor-header{gap:12px;padding:15px}.editor-header h1{font-size:13px;max-width:210px}.editor-header>div{flex:1}.save-status{width:100%;margin-left:0}.editor-toolbar{padding:10px 15px;gap:12px}.editor-hint{padding:12px 15px}.pdf-scroll{padding:15px;text-align:left}.feedback{margin:15px}.editor>.error,.conflict-box{margin:12px 15px}.document-row .button-link{font-size:10px}.lesson-card{padding:13px}.learning .section-heading{align-items:center}}
 
 /* Keep the tools and saving feedback available while reading any part of a page. */
+.pdf-link-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.pdf-sheet .pdf-link { position: absolute; display: block; padding: 0; margin: 0; min-width: 0; min-height: 0; border: 0; border-radius: 2px; background: transparent; box-shadow: none; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
+.pdf-sheet .pdf-link:hover { background: #28766020; outline: 1px solid #287660; }
+.pdf-sheet .pdf-link:focus-visible { outline: 3px solid #287660; background: #28766020; outline-offset: 2px; }
+.pdf-link-error { position: absolute; bottom: 0; left: 0; z-index: 3; padding: 10px; background: #fff7e8; color: #61431c; font-size: 12px; }
 .editor-controls {
   position: sticky;
   top: 0;

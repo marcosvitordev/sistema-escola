@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Download, Highlighter, MousePoint
 import type { Annotation } from '@/lib/pdf-annotations';
 import { Form } from './form';
 import { useDocumentWork } from './use-document-work';
+import { PdfLinks } from './pdf-links';
 
 export function PdfEditor({ documentId, studentId, manage }: { documentId: string; studentId?: string; manage: boolean }) {
   const work = useDocumentWork(documentId, studentId);
@@ -46,7 +47,14 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
     return () => { active = false; void task?.destroy(); };
   }, [work.base, !!work.data]);
   function update(id: string, patch: Partial<Annotation>) { work.change(work.notes.map(note => note.id === id ? { ...note, ...patch } : note)); }
-  function navigate(next: number) { setPage(next); setSelected(''); }
+  function navigate(next: number, followLink = false) {
+    setPage(next); setSelected('');
+    if (followLink && pdfArea.current) {
+      pdfArea.current.scrollTop = 0;
+      const controls = document.querySelector('.editor-controls')?.getBoundingClientRect().height || 0;
+      window.scrollTo({ top: window.scrollY + pdfArea.current.getBoundingClientRect().top - controls });
+    }
+  }
   async function fitWidth() {
     if (!pdf || !pdfArea.current) return;
     const pdfPage = await pdf.getPage(page);
@@ -99,12 +107,12 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
     {(work.error || pdfError) && <p className="error" role="alert">{work.error || pdfError}</p>}
     {work.conflict && <section className="conflict-box"><strong>Há outra versão salva no servidor.</strong><p>Seu rascunho foi preservado. Escolha qual versão deseja continuar usando. Manter o rascunho substituirá a versão atual após sua escolha.</p><button onClick={() => { if (confirm('Substituir as respostas do servidor pelo rascunho desta página?')) void work.resolve(true); }}>Manter meu rascunho</button><button className="secondary" onClick={() => { if (confirm('Descartar este rascunho local e carregar as respostas do servidor?')) void work.resolve(false); }}>Usar versão do servidor</button></section>}
     {work.data?.work?.feedback.length ? <details className="feedback card" id="correcao" open><summary>Correções e feedback</summary>{work.data.work.feedback.map(f => <article key={f.id}><strong>{f.grade !== null ? `Nota: ${f.grade.toLocaleString('pt-BR')} / 10` : 'Comentário do professor'}</strong><p>{f.comment}</p><small>{new Date(f.createdAt).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })}</small></article>)}</details> : null}
-    <div className="pdf-scroll" ref={pdfArea}>{pdf ? <PdfPage pdf={pdf} pageNumber={page} scale={scale} notes={work.notes.filter(n => n.page === page)} readOnly={readOnly || work.conflict} tool={tool} selected={selected} onSelect={setSelected} update={update} add={addNote} /> : <div className="empty"><p>{pdfError || 'Abrindo páginas da apostila…'}</p></div>}</div>
+    <div className="pdf-scroll" ref={pdfArea}>{pdf ? <PdfPage pdf={pdf} pageNumber={page} scale={scale} notes={work.notes.filter(n => n.page === page)} readOnly={readOnly || work.conflict} tool={tool} selected={selected} onSelect={setSelected} update={update} add={addNote} onNavigate={next => navigate(next, true)} /> : <div className="empty"><p>{pdfError || 'Abrindo páginas da apostila…'}</p></div>}</div>
     {manage && studentId && work.data?.work && <section className="feedback card"><h2>Corrigir trabalho</h2><Form endpoint={`learning/documents/${documentId}/feedback${work.query}`} label="Registrar correção" onSuccess={() => window.location.reload()} transform={d => ({ comment: d.comment, grade: d.grade === '' ? undefined : Number(d.grade), reopen: d.reopen === 'on' })}><label>Feedback para o aluno<textarea name="comment" required maxLength={5000} rows={3} /></label><label>Nota (0 a 10, opcional)<input name="grade" type="number" min="0" max="10" step="0.1" /></label><label className="checkbox-label"><input name="reopen" type="checkbox" />Reabrir a apostila para o aluno continuar</label></Form></section>}
   </main>;
 }
 
-function PdfPage({ pdf, pageNumber, scale, notes, readOnly, tool, selected, onSelect, update, add }: { pdf: PDFDocumentProxy; pageNumber: number; scale: number; notes: Annotation[]; readOnly: boolean; tool: string; selected: string; onSelect: (id: string) => void; update: (id: string, patch: Partial<Annotation>) => void; add: (x: number, y: number) => void }) {
+function PdfPage({ pdf, pageNumber, scale, notes, readOnly, tool, selected, onSelect, update, add, onNavigate }: { pdf: PDFDocumentProxy; pageNumber: number; scale: number; notes: Annotation[]; readOnly: boolean; tool: string; selected: string; onSelect: (id: string) => void; update: (id: string, patch: Partial<Annotation>) => void; add: (x: number, y: number) => void; onNavigate: (page: number) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 612, height: 792 });
@@ -138,7 +146,7 @@ function PdfPage({ pdf, pageNumber, scale, notes, readOnly, tool, selected, onSe
   return <div className="pdf-sheet" ref={sheet} data-testid="pdf-page" data-rendered={renderedKey === `${pageNumber}:${scale}`} style={{ width: size.width * scale, height: size.height * scale }} onClick={event => {
     if (readOnly || tool === 'select' || event.target !== sheet.current) return;
     const rect = event.currentTarget.getBoundingClientRect(); add((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
-  }}><canvas ref={canvas} aria-label={`Página ${pageNumber} da apostila`} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />{renderError && <p className="error">{renderError}</p>}{notes.map(note => <div key={note.id} className={`pdf-note ${note.id === selected ? 'selected' : ''} ${note.type}`} style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, width: `${note.width * 100}%`, height: `${note.height * 100}%`, ...(note.type === 'highlight' ? { backgroundColor: note.color } : {}) }} onClick={e => { e.stopPropagation(); onSelect(note.id); }}>
+  }}><canvas ref={canvas} aria-label={`Página ${pageNumber} da apostila`} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} /><PdfLinks pdf={pdf} pageNumber={pageNumber} onNavigate={onNavigate} />{renderError && <p className="error">{renderError}</p>}{notes.map(note => <div key={note.id} className={`pdf-note ${note.id === selected ? 'selected' : ''} ${note.type}`} style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, width: `${note.width * 100}%`, height: `${note.height * 100}%`, ...(note.type === 'highlight' ? { backgroundColor: note.color } : {}) }} onClick={e => { e.stopPropagation(); onSelect(note.id); }}>
       {!readOnly && note.id === selected && <button className="move-handle" aria-label="Mover resposta" onPointerDown={e => { e.preventDefault(); drag.current = { id: note.id, startX: e.clientX, startY: e.clientY, x: note.x, y: note.y }; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerMove={e => { const start = drag.current; if (!start || !sheet.current) return; const rect = sheet.current.getBoundingClientRect(); update(start.id, { x: Math.max(0, Math.min(1 - note.width, start.x + (e.clientX - start.startX) / rect.width)), y: Math.max(0, Math.min(1 - note.height, start.y + (e.clientY - start.startY) / rect.height)) }); }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}><Move size={12} /></button>}
       {note.type === 'text' && <textarea autoFocus={!readOnly && note.id === selected && !note.text} aria-label={`Resposta na página ${pageNumber}`} placeholder={readOnly ? undefined : 'Digite sua resposta…'} wrap="off" spellCheck lang="pt-BR" readOnly={readOnly} value={note.text} style={{ fontSize: note.fontSize * scale, color: note.color, lineHeight: 1.3 }} onFocus={() => onSelect(note.id)} onChange={e => {
         const text = e.target.value.slice(0, 5000);
