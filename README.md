@@ -59,7 +59,7 @@ O administrador pode cadastrar alunos sem turma e matriculá-los depois. Profess
 
 ## Provas e atividades
 
-Use **Importar Google Forms** para trazer um formulário seu por arquivo JSON, com exportador e passo a passo na própria tela. A prévia indica adaptações e perguntas sem gabarito. Revise e salve como rascunho antes de publicar. Veja [como importar e quais tipos são compatíveis](docs/IMPORTAR-GOOGLE-FORMS.md).
+Use **Importar Google Forms** para trazer um formulário seu por ZIP com imagens ou JSON, com exportador e passo a passo na própria tela. A prévia permite conferir a associação das imagens às perguntas e indica adaptações e gabaritos ausentes. O exportador v3 inclui imagens separadas; imagens dentro de perguntas e alternativas exigem a função completa e a configuração da API Google Forms descritas na tela. Revise e salve como rascunho antes de publicar. Veja [como importar e quais tipos são compatíveis](docs/IMPORTAR-GOOGLE-FORMS.md).
 
 No menu **Provas e atividades**, escolha uma turma e clique em **Nova prova ou atividade**. A turma precisa ter pelo menos uma aula cadastrada. Selecione o formato, a aula, o título, as instruções, o prazo opcional (horário do Acre) e o número de tentativas (1 a 10).
 

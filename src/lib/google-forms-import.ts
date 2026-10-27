@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { QuestionView } from './assessment-types';
 
 const text = z.string().max(20_000);
+const image = z.object({ _aprenderAssetId: z.string().uuid().optional(), altText: text.optional() }).passthrough();
 const choice = z.object({ type: z.string().max(100), shuffle: z.boolean().optional(), options: z.array(z.object({ value: text.optional(), isOther: z.boolean().optional(), image: z.unknown().optional(), goToAction: z.string().optional(), goToSectionId: z.string().optional() })).max(1000) });
 const question = z.object({
   required: z.boolean().optional(),
@@ -14,6 +15,7 @@ const question = z.object({
 });
 const sourceSchema = z.object({
   _aprenderWarnings: z.array(z.string().max(25_000)).max(500).optional(),
+  _aprenderAssets: z.array(z.object({ id: z.string().uuid() })).max(200).optional(),
   info: z.object({ title: text, description: text.optional() }),
   items: z.array(z.object({
     title: text.optional(), description: text.optional(),
@@ -24,7 +26,8 @@ const sourceSchema = z.object({
 });
 
 export class GoogleFormsImportError extends Error {}
-export type GoogleFormsPreview = { title: string; instructions: string; questions: QuestionView[]; warnings: string[]; needsAnswerKey: number };
+export type ImportImageBinding = { id: string; assetId: string; questionId: string; caption: string };
+export type GoogleFormsPreview = { title: string; instructions: string; questions: QuestionView[]; warnings: string[]; needsAnswerKey: number; imageBindings: ImportImageBinding[] };
 
 export function importGoogleForm(source: unknown): GoogleFormsPreview {
   const parsed = sourceSchema.safeParse(source);
@@ -36,9 +39,19 @@ export function importGoogleForm(source: unknown): GoogleFormsPreview {
   if (instructions.length > 5000) throw new GoogleFormsImportError('A descrição do formulário excede 5.000 caracteres. Reduza a descrição antes de importar.');
   const questions: QuestionView[] = [];
   const warnings = new Set<string>(form._aprenderWarnings || []);
+  const availableAssets = new Set(form._aprenderAssets?.map(asset => asset.id) || []);
+  const imageBindings: ImportImageBinding[] = [];
+  let pending: { assetId: string; caption: string }[] = [];
+  function imageRef(value: unknown, caption: string) {
+    if (value === undefined) return [];
+    const parsed = image.safeParse(value);
+    const id = parsed.success ? parsed.data._aprenderAssetId : undefined;
+    if (!id || !availableAssets.has(id)) { warnings.add(`Não foi possível incluir "${caption}". Use o exportador com imagens e envie o pacote ZIP completo.`); return []; }
+    return [{ assetId: id, caption }];
+  }
   let section = '';
   let needsAnswerKey = 0;
-  function add(raw: z.infer<typeof question>, prompt: string, groupChoice?: z.infer<typeof choice>) {
+  function add(raw: z.infer<typeof question>, prompt: string, groupChoice?: z.infer<typeof choice>, images: { assetId: string; caption: string }[] = []) {
     const number = questions.length + 1;
     if (number > 100) throw new GoogleFormsImportError('O formulário ultrapassa 100 questões após a conversão das grades. Divida-o em avaliações menores.');
     const warn = (message: string) => warnings.add(`Questão ${number}: ${message}`);
@@ -51,9 +64,9 @@ export function importGoogleForm(source: unknown): GoogleFormsPreview {
     const keys = raw.grading?.correctAnswers?.answers.map(answer => answer.value.trim()) || [];
     if (options) {
       if (options.shuffle) warn('a ordem aleatória das alternativas não é importada.');
-      const values = options.options.map(option => option.isOther ? 'Outro (especifique na resposta)' : (option.value?.trim() || '').replace(/\s*[\r\n]+\s*/g, ' '));
+      const values = options.options.map((option, i) => option.isOther ? 'Outro (especifique na resposta)' : (option.value?.trim() || (option.image !== undefined ? `Alternativa ${i < 26 ? String.fromCharCode(65 + i) : i + 1}` : '')).replace(/\s*[\r\n]+\s*/g, ' '));
       if (options.options.some(option => /[\r\n]/.test(option.value || ''))) warn('quebras de linha nas alternativas foram convertidas em espaços.');
-      if (options.options.some(option => option.image)) warn('reenvie as imagens das alternativas após salvar o rascunho.');
+      options.options.forEach((option, i) => images.push(...imageRef(option.image, `Imagem da alternativa ${i < 26 ? String.fromCharCode(65 + i) : i + 1}`)));
       if (options.options.some(option => option.goToAction || option.goToSectionId)) warnings.add('Os desvios entre seções não são importados. As perguntas ficam em uma única sequência.');
       const single = ['RADIO', 'DROP_DOWN'].includes(options.type) && !options.options.some(option => option.isOther) && values.length >= 2 && values.length <= 20 && values.every(value => value && value.length <= 500);
       if (single) {
@@ -62,7 +75,7 @@ export function importGoogleForm(source: unknown): GoogleFormsPreview {
         if (indexes.length === 1) q.answerKey = String(indexes[0]);
         else { needsAnswerKey++; warn('selecione a alternativa correta na revisão; o arquivo não fornece um gabarito único.'); }
       } else {
-        q.prompt += `\n\nAlternativas do formulário:\n${values.map((value, i) => `${i + 1}. ${value || '(sem texto)'}`).join('\n')}`;
+        q.prompt += `\n\nAlternativas do formulário:\n${values.map((value, i) => `${i < 26 ? String.fromCharCode(65 + i) : i + 1}. ${value || '(sem texto)'}`).join('\n')}`;
         warn('convertida em discursiva com correção manual, preservando as alternativas no enunciado. Marcação múltipla, opção Outro e listas fora dos limites precisam de adaptação.');
       }
     } else if (raw.textQuestion && !raw.textQuestion.paragraph && keys.length && keys.length <= 20 && keys.every(key => key && key.length <= 500)) {
@@ -79,22 +92,29 @@ export function importGoogleForm(source: unknown): GoogleFormsPreview {
     if (q.prompt.trim().length < 3) { q.prompt = `Questão ${number}${q.prompt.trim() ? ` — ${q.prompt.trim()}` : ''}`; warn('confira o enunciado, que estava vazio ou muito curto.'); }
     if (q.prompt.length > 5000) throw new GoogleFormsImportError(`A questão ${number}, incluindo alternativas e seção, excede 5.000 caracteres. Reduza seu conteúdo antes de importar.`);
     questions.push(q);
+    images.forEach(ref => imageBindings.push({ id: randomUUID(), ...ref, questionId: q.id }));
   }
   for (const item of form.items) {
     if (item.pageBreakItem !== undefined || item.textItem !== undefined) { section = [item.title, item.description].filter(Boolean).join('\n'); continue; }
     const prompt = [section, item.title, item.description].filter(Boolean).join('\n\n');
     if (item.questionItem) {
-      if (item.questionItem.image !== undefined) warnings.add(`Imagem de "${item.title || 'pergunta'}" não importada. Reenvie-a após salvar o rascunho.`);
-      add(item.questionItem.question, prompt);
+      const images = [...pending, ...imageRef(item.questionItem.image, 'Imagem da pergunta')]; pending = [];
+      add(item.questionItem.question, prompt, undefined, images);
     } else if (item.questionGroupItem) {
       warnings.add('Grades são separadas em uma pergunta por linha. Confira alternativas, gabaritos e pontuação de cada linha.');
-      if (item.questionGroupItem.image !== undefined) warnings.add('A imagem de uma grade não foi importada. Reenvie-a após salvar o rascunho.');
-      item.questionGroupItem.questions.forEach((row, i) => add(row, `${prompt}\n\n${row.rowQuestion?.title || `Linha ${i + 1}`}`, item.questionGroupItem?.grid?.columns));
-    } else if (item.imageItem !== undefined || item.videoItem !== undefined) warnings.add(`Mídia "${item.title || 'sem título'}" não importada. Revise o contexto das perguntas e envie as imagens necessárias.`);
+      const images = [...pending, ...imageRef(item.questionGroupItem.image, 'Imagem da grade')]; pending = [];
+      item.questionGroupItem.questions.forEach((row, i) => add(row, `${prompt}\n\n${row.rowQuestion?.title || `Linha ${i + 1}`}`, item.questionGroupItem?.grid?.columns, [...images]));
+    } else if (item.imageItem !== undefined) {
+      const parsed = z.object({ image: z.unknown().optional() }).safeParse(item.imageItem);
+      pending.push(...imageRef(parsed.success ? parsed.data.image ?? {} : {}, item.title?.trim() || 'Imagem de contexto'));
+      warnings.add('Imagens separadas são associadas à pergunta seguinte (ou à última, no fim do formulário). Confira e altere as associações na prévia se necessário.');
+    } else if (item.videoItem !== undefined) warnings.add(`Mídia "${item.title || 'sem título'}" não importada. Revise o contexto das perguntas e envie as imagens necessárias.`);
     else throw new GoogleFormsImportError(`O item "${item.title || 'sem título'}" não tem uma estrutura reconhecida. Exporte novamente com o exportador fornecido.`);
   }
   if (!questions.length) throw new GoogleFormsImportError('O arquivo não contém perguntas importáveis.');
-  const result = { title, instructions, questions, warnings: [...warnings], needsAnswerKey };
+  pending.forEach(ref => imageBindings.push({ id: randomUUID(), ...ref, questionId: questions.at(-1)!.id }));
+  if (imageBindings.length > 500) throw new GoogleFormsImportError('Há muitas associações de imagens. Divida o formulário em partes menores.');
+  const result = { title, instructions, questions, warnings: [...warnings], needsAnswerKey, imageBindings };
   if (Buffer.byteLength(JSON.stringify(result), 'utf8') > 300_000) throw new GoogleFormsImportError('O conteúdo convertido é muito grande para uma avaliação. Divida o formulário em partes menores.');
   return result;
 }

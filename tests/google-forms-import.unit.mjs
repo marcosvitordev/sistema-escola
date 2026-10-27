@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { createHash, randomUUID } from 'node:crypto';
+import { zipSync, unzipSync, strToU8 } from 'fflate';
+import { readGoogleFormsPackage } from '../src/lib/google-forms-package.ts';
 import { importGoogleForm } from '../src/lib/google-forms-import.ts';
 import { assessmentSchema, automaticScores } from '../src/lib/assessments.ts';
 
@@ -88,7 +91,7 @@ test('exportador gera JSON compatível usando só o formulário atual e download
   assert(dialog.includes('download="google-forms-aprender.json"'));
   assert(!dialog.includes('</script>'));
   assert(!script.includes('getResponses('));
-  assert(!script.includes('UrlFetchApp'));
+  assert(!script.includes('/responses'));
 });
 
 test('falha de pontuação ou gabarito gera aviso sem interromper ou adivinhar a resposta', () => {
@@ -109,4 +112,78 @@ test('falha de pontuação ou gabarito gera aviso sem interromper ou adivinhar a
   assert.equal(preview.needsAnswerKey, 1);
   assert(preview.warnings.some(warning => warning.includes('não foi possível ler pontuação')));
   assert(preview.warnings.some(warning => warning.includes('não foi possível ler gabarito')));
+});
+
+test('associa imagens de pergunta, alternativa e contexto sem buscar URLs no servidor', () => {
+  const ids = [randomUUID(), randomUUID(), randomUUID()];
+  const source = form([{ title: 'Figura de contexto', imageItem: { image: { _aprenderAssetId: ids[0] } } }, { title: 'Observe a figura e escolha.', questionItem: { image: { _aprenderAssetId: ids[1] }, question: { ...single(), choiceQuestion: { type: 'RADIO', options: [{ value: 'Windows', image: { _aprenderAssetId: ids[2] } }, { value: 'Teclado' }] } } } }]);
+  source._aprenderAssets = ids.map(id => ({ id }));
+  const preview = importGoogleForm(source);
+  assert.equal(preview.imageBindings.length, 3);
+  assert(preview.imageBindings.every(binding => binding.questionId === preview.questions[0].id));
+  assert.equal(preview.imageBindings[2].caption, 'Imagem da alternativa A');
+  assert.equal(preview.questions[0].answerKey, '0');
+});
+
+const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN2kAAAAASUVORK5CYII=', 'base64');
+test('lê ZIP completo com imagens e bloqueia caminhos, imagens inválidas e tamanho excessivo', () => {
+  const id = randomUUID(); const path = `imagens/${id}.png`;
+  const source = { ...form([item(single())]), _aprenderAssets: [{ id, path }] };
+  const archive = zipSync({ 'formulario.json': strToU8(JSON.stringify(source)), [path]: pixel });
+  const parsed = readGoogleFormsPackage(archive, 'formulario.zip');
+  assert.equal(parsed.assets.length, 1); assert.deepEqual(Buffer.from(parsed.assets[0].bytes), pixel);
+  assert.throws(() => readGoogleFormsPackage(zipSync({ '../fora.json': strToU8('{}') }), 'arquivo.zip'), /não reconhecidos/);
+  assert.throws(() => readGoogleFormsPackage(zipSync({ 'formulario.json': strToU8(JSON.stringify(source)) }), 'arquivo.zip'), /não foi encontrada/);
+  assert.throws(() => readGoogleFormsPackage(zipSync({ 'formulario.json': strToU8(JSON.stringify(source)), [path]: strToU8('imagem falsa') }), 'arquivo.zip'), /imagem inválida/);
+  assert.throws(() => readGoogleFormsPackage(zipSync({ 'formulario.json': strToU8(JSON.stringify(source)), [path]: new Uint8Array(5_000_001) }), 'arquivo.zip'), /limites/);
+});
+
+function blob(bytes, name) {
+  return { getBytes: () => Buffer.from(bytes), getName: () => name, copyBlob: () => blob(bytes, name), setName(value) { name = value; return this; } };
+}
+function utilities(onJson) {
+  return {
+    getUuid: () => randomUUID(), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, bytes) => [...createHash('sha256').update(Buffer.from(bytes)).digest()],
+    newBlob: (value, mime, name) => { if (mime === 'application/json') onJson(JSON.parse(value)); return blob(Buffer.from(value), name); },
+    base64Encode: value => Buffer.from(value).toString('base64'),
+    zip: (blobs, name) => blob(zipSync(Object.fromEntries(blobs.map(value => [value.getName(), value.getBytes()]))), name),
+  };
+}
+test('exportador simples inclui imagem separada no ZIP sem chamar APIs externas', () => {
+  const script = readFileSync(new URL('../public/exportar-google-forms.gs', import.meta.url), 'utf8');
+  let source, html;
+  const imageItem = { getType: () => 'IMAGE', getTitle: () => 'Imagem separada', getHelpText: () => '', asImageItem: () => ({ getImage: () => blob(pixel) }) };
+  const textItem = { getType: () => 'TEXT', getTitle: () => 'Descreva a figura', getHelpText: () => '', asTextItem: () => ({ isRequired: () => false }) };
+  runInNewContext(`${script}\nexportarParaAprender();`, {
+    FormApp: { getActiveForm: () => ({ getTitle: () => 'Imagem no formulário', getDescription: () => '', isQuiz: () => false, getItems: () => [imageItem, textItem] }), getUi: () => ({ showModalDialog: value => { html = value.html; } }) },
+    Utilities: utilities(value => { source = value; }), UrlFetchApp: { fetch() { throw new Error('Não deve acessar a rede no modo simples'); } },
+    HtmlService: { createHtmlOutput: value => ({ html: value, setWidth() { return this; }, setHeight() { return this; } }) },
+  });
+  assert.equal(source._aprenderAssets.length, 1);
+  assert(html.includes('google-forms-aprender.zip'));
+  const encoded = html.match(/href="data:application\/zip;base64,([^"]+)"/)[1];
+  assert.equal(readGoogleFormsPackage(Buffer.from(encoded, 'base64'), 'pacote.zip').assets.length, 1);
+  assert.equal(importGoogleForm(source).imageBindings.length, 1);
+});
+
+test('exportador completo baixa imagens do Google sem enviar token ao CDN e sem ler respostas', () => {
+  const script = readFileSync(new URL('../public/exportar-google-forms.gs', import.meta.url), 'utf8');
+  let source;
+  const response = form([{ title: 'Leia a imagem.', questionItem: { image: { contentUri: 'https://lh3.googleusercontent.com/imagem' }, question: single() } }]);
+  const calls = [];
+  runInNewContext(`${script}\nexportarParaAprenderComImagens();`, {
+    FormApp: { getActiveForm: () => ({ getId: () => 'id-formulario' }), getUi: () => ({ showModalDialog() {} }) },
+    ScriptApp: { getOAuthToken: () => 'token-apenas-google' }, Utilities: utilities(value => { source = value; }),
+    UrlFetchApp: { fetch(url, options) {
+      calls.push(url);
+      if (url.startsWith('https://forms.googleapis.com/')) { assert.equal(options.headers.Authorization, 'Bearer token-apenas-google'); return { getResponseCode: () => 200, getContentText: () => JSON.stringify(response) }; }
+      assert.equal(options.headers, undefined); return { getResponseCode: () => 200, getBlob: () => blob(pixel) };
+    } },
+    HtmlService: { createHtmlOutput: html => ({ html, setWidth() { return this; }, setHeight() { return this; } }) },
+  });
+  assert.equal(calls.length, 2); assert(!calls.some(url => url.includes('/responses')));
+  assert.equal(source._aprenderAssets.length, 1);
+  assert(!JSON.stringify(source).includes('token-apenas-google'));
+  assert(!JSON.stringify(source).includes('contentUri'));
+  assert.equal(importGoogleForm(source).imageBindings.length, 1);
 });

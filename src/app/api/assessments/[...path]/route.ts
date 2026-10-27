@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 class RequestError extends Error { constructor(message: string, public status = 400) { super(message); } }
 const json = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const fileSelect = { id: true, questionId: true, name: true, mimeType: true } as const;
-const questionSelect = { id: true, position: true, type: true, prompt: true, points: true, options: true, matches: true, answerKey: true, imageId: true } as const;
+const questionSelect = { id: true, position: true, type: true, prompt: true, points: true, options: true, matches: true, answerKey: true, imageId: true, files: { where: { attemptId: null, mimeType: { in: ['image/png', 'image/jpeg'] } }, select: { id: true, name: true }, orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }] } } satisfies Prisma.AssessmentQuestionSelect;
 const definitionInclude = { questions: { orderBy: { position: 'asc' as const }, select: questionSelect }, lesson: { select: { id: true, title: true, published: true, classId: true } } };
 async function readBytes(req: NextRequest, limit: number) {
   const reader = req.body?.getReader(); if (!reader) throw new RequestError('Envie os dados da operação.');
@@ -31,7 +31,7 @@ const expired = (date: Date | null) => date !== null && date.getTime() < Date.no
 const keyJson = (value: unknown) => value === null ? Prisma.JsonNull : value as Prisma.InputJsonValue;
 type Question = Prisma.AssessmentQuestionGetPayload<{ select: typeof questionSelect }>;
 const rules = (questions: Question[]) => questions as unknown as QuestionDefinition[];
-function publicQuestions(questions: Question[], manage: boolean) { return questions.map(q => { const { answerKey, ...publicQuestion } = q; return manage ? q : publicQuestion; }); }
+function publicQuestions(questions: Question[], manage: boolean) { return questions.map(q => { const { answerKey, files, ...publicQuestion } = q; const view = { ...publicQuestion, images: files }; return manage ? { ...view, answerKey } : view; }); }
 function score(attempt: { autoScores: Prisma.JsonValue; review: Prisma.JsonValue }) {
   const automatic = attempt.autoScores as Record<string, number>;
   const manual = attempt.review as Record<string, { points: number }>;
@@ -133,11 +133,14 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
           const created = await tx.assessment.create({ data: { lessonId: data.lessonId, kind: assessment.kind, title: `${assessment.title.slice(0, 140)} (cópia)`, instructions: assessment.instructions, maxAttempts: assessment.maxAttempts } });
           for (const original of assessment.questions) {
             const questionId = randomUUID();
-            await tx.assessmentQuestion.create({ data: { ...original, id: questionId, assessmentId: created.id, imageId: null, answerKey: keyJson(original.answerKey) } });
-            if (original.imageId) {
-              const image = await tx.assessmentFile.findFirst({ where: { id: original.imageId, assessmentId: id, attemptId: null } });
-              if (image) { const file = await tx.assessmentFile.create({ data: { assessmentId: created.id, questionId, name: image.name, mimeType: image.mimeType, content: image.content } }); await tx.assessmentQuestion.update({ where: { id: questionId }, data: { imageId: file.id } }); }
+            const { files, ...fields } = original;
+            await tx.assessmentQuestion.create({ data: { ...fields, id: questionId, assessmentId: created.id, imageId: null, answerKey: keyJson(original.answerKey) } });
+            let firstImageId: string | null = null;
+            for (const originalFile of files) {
+              const image = await tx.assessmentFile.findFirst({ where: { id: originalFile.id, assessmentId: id, questionId: original.id, attemptId: null } });
+              if (image) { const file = await tx.assessmentFile.create({ data: { assessmentId: created.id, questionId, name: image.name, mimeType: image.mimeType, content: image.content } }); firstImageId ??= file.id; }
             }
+            if (firstImageId) await tx.assessmentQuestion.update({ where: { id: questionId }, data: { imageId: firstImageId } });
           }
           await audit(tx, 'assessment-duplicated', created.id); return { id: created.id };
         });
@@ -160,15 +163,27 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       if (action === 'image' && req.method === 'POST' && manage) {
         const form = await multipart(req); const questionId = z.string().parse(form.get('questionId'));
         const file = await validatedFile(form.get('file'), true);
-        await db.$transaction(async tx => {
+        const append = form.get('append') === 'true';
+        const importId = append ? z.string().uuid().parse(form.get('importId')) : undefined;
+        const saved = await db.$transaction(async tx => {
           await locked(tx);
           if (await tx.assessmentAttempt.count({ where: { assessmentId: id } })) throw new RequestError('As imagens ficam protegidas após o início das tentativas.', 409);
-          if (!await tx.assessmentQuestion.findFirst({ where: { id: questionId, assessmentId: id } })) throw new RequestError('Questão não encontrada.', 404);
-          const image = await tx.assessmentFile.create({ data: { ...file, assessmentId: id, questionId } });
-          await tx.assessmentQuestion.update({ where: { id: questionId }, data: { imageId: image.id } });
-          await tx.assessmentFile.deleteMany({ where: { questionId, attemptId: null, id: { not: image.id } } });
+          const current = await tx.assessmentQuestion.findFirst({ where: { id: questionId, assessmentId: id } });
+          if (!current) throw new RequestError('Questão não encontrada.', 404);
+          if (importId) {
+            const existing = await tx.assessmentFile.findUnique({ where: { id: importId } });
+            if (existing) {
+              if (existing.assessmentId !== id || existing.questionId !== questionId || existing.attemptId !== null || !Buffer.from(existing.content).equals(Buffer.from(file.content)) || existing.name !== file.name) throw new RequestError('Referência de imagem incompatível. Reimporte o pacote.', 409);
+              return { id: existing.id };
+            }
+            if (await tx.assessmentFile.count({ where: { questionId, attemptId: null } }) >= 25) throw new RequestError('Cada questão aceita até 25 imagens.', 400);
+          }
+          const image = await tx.assessmentFile.create({ data: { ...file, ...(importId ? { id: importId } : {}), assessmentId: id, questionId } });
+          if (!append || !current.imageId) await tx.assessmentQuestion.update({ where: { id: questionId }, data: { imageId: image.id } });
+          if (!append) await tx.assessmentFile.deleteMany({ where: { questionId, attemptId: null, id: { not: image.id } } });
+          return { id: image.id };
         });
-        return json({ ok: true }, 201);
+        return json({ ok: true, ...saved }, 201);
       }
     }
     if (resource === 'attempts' && id) {

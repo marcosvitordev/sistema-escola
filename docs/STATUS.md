@@ -104,6 +104,8 @@ Oito testes aprovados, incluindo simulação da mesma exceção em métodos opci
 
 ## Ocorrências do ambiente
 
+Google Forms: exportador v3 com ZIP e imagens, prévia de associação por pergunta e galerias privadas para professor/aluno. Imagens incorporadas a perguntas/alternativas usam a função completa com configuração da API na conta Google do proprietário; imagens separadas usam a função simples. Salvamento permite repetir uploads após falha sem duplicar rascunho ou imagens. Build e TypeScript, 12 testes unitários, oito regressões de avaliações e fluxo público com imagens/reenvio/cópia/celular aprovados. Google foi simulado nos testes do exportador, sem autorização de conta real. Consulte `IMPORTAR-GOOGLE-FORMS.md`.
+
 A instalação inicial foi interrompida por falta de espaço no disco C:. Após liberação de espaço, as dependências foram reinstaladas com lockfile, o Docker Desktop iniciou e o PostgreSQL local ficou saudável. Um novo esgotamento de memória interrompeu uma rodada de testes; as execuções seguintes usaram limite de heap menor e concluíram. O espaço livre permanece reduzido; nenhuma limpeza de arquivos pessoais foi realizada.
 
 Durante a Fase 3 o disco voltou a esgotar. A limpeza automática do cache de testes foi bloqueada pela política do ambiente. Foi possível recuperar espaço com compactação NTFS apenas em `node_modules`, sem excluir arquivos. Os testes passaram a desabilitar o cache persistente de compilação para reduzir gravações. O servidor local foi pausado durante a validação para liberar memória.
