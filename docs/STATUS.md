@@ -66,6 +66,18 @@ Janela da turma ampliada, com seções Resumo, Alunos, Aulas e apostilas e Prova
 
 TypeScript e build Linux aprovados. Validações no endereço público pelo Chromium real cobriram senhas de quatro caracteres, bloqueio de senhas menores/perfis de gestão, primeiro acesso, troca/reset/revogação, navegação e cadastro/matrícula na turma, buscas, retenção de rascunhos, PDF/publicação e criação de avaliação. Capturas desktop e celular inspecionadas. As atualizações preservam os cadastros reais e removem somente dados temporários da verificação.
 
+## Turma como página própria
+
+O acesso Abrir turma agora navega para `/turmas/[id]`. Detalhes da turma deixam o modal e usam uma página normal, com título da turma, retorno às turmas, tema e as quatro seções existentes. Cadastro/matrícula atualiza a página sem perder a seção e os formulários abertos. A rota verifica sessão, troca obrigatória de senha, instituição e professor responsável antes de retornar os dados. Alunos permanecem na área exclusiva do estudante.
+
+TypeScript e build de produção aprovados. Teste no endereço público validou link da turma, ausência de modal, recarregamento, retorno e reabertura, seções, matrícula/cadastro com senha de quatro caracteres, busca, PDF/publicação e criação de avaliação. Proteção conferida no navegador: alunos/professores de outra turma recebem a página de não encontrado sem dados da turma, professor responsável tem acesso e visitante retorna ao login. Captura da página desktop inspecionada e layout móvel validado.
+
+## Renomeação das apostilas
+
+Professor responsável e administrador podem renomear PDFs existentes em Turma → Aulas e apostilas → Renomear. Formulário com nome, salvar e cancelar; valida nome obrigatório, até 150 caracteres e sem caracteres de controle. Atualização transacional apenas do título com registro de auditoria. Identificador, bytes, hash, trabalhos, respostas, entregas e correções preservados. O nome atualizado aparece para o aluno e nos downloads original/respondido, com nome UTF-8 seguro.
+
+TypeScript e build aprovados. Teste no HTTPS público pelo navegador conferiu cancelar, nome inválido, persistência após reload, autorização de administrador/professor responsável, bloqueio de aluno/outro professor, conteúdo original idêntico, trabalho e respostas intactos, listagem do aluno e nomes dos downloads. Layout móvel inspecionado sem rolagem horizontal. Registros temporários removidos após a validação.
+
 ## Pendências gerais
 
 - Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.

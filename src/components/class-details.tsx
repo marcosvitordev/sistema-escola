@@ -5,8 +5,8 @@ import { Field, Form } from './form';
 import { ClassLearning } from './class-learning';
 import { ClassAssessments } from './class-assessments';
 
-type Person = { id: string; name: string; username?: string; role: string };
-type Classroom = { id: string; name: string; course: { name: string; description: string }; teacher: { name: string }; enrollments: { id: string; student: Person }[] };
+export type Person = { id: string; name: string; username?: string; role: string };
+export type Classroom = { id: string; name: string; course: { name: string; description: string }; teacher: { name: string }; enrollments: { id: string; student: Person }[] };
 const sections = [
   { id: 'summary', label: 'Resumo', icon: GraduationCap },
   { id: 'students', label: 'Alunos', icon: Users },
@@ -34,7 +34,7 @@ export function ClassDetails({ classroom, users, onChanged }: { classroom: Class
   }
   function saved(message: string) { setNotice(message); setStudentForm(null); onChanged(); }
   return <div className="class-details">
-    <header className="class-details-heading"><div><span className="pill">{classroom.course.name}</span><h3>{classroom.name}</h3><p>Professor responsável: <strong>{classroom.teacher.name}</strong></p></div><span className="class-student-count"><Users size={20} /><strong>{classroom.enrollments.length}</strong> {classroom.enrollments.length === 1 ? 'aluno' : 'alunos'}</span></header>
+    <header className="class-details-heading"><div><span className="pill">{classroom.course.name}</span><h1>{classroom.name}</h1><p>Professor responsável: <strong>{classroom.teacher.name}</strong></p></div><span className="class-student-count"><Users size={20} /><strong>{classroom.enrollments.length}</strong> {classroom.enrollments.length === 1 ? 'aluno' : 'alunos'}</span></header>
     <div className="class-details-tabs" role="tablist" aria-label="Seções da turma">{sections.map((item, index) => <button key={item.id} id={tabId(item.id)} type="button" role="tab" aria-selected={section === item.id} aria-controls={panelId(item.id)} tabIndex={section === item.id ? 0 : -1} onClick={() => navigate(item.id)} onKeyDown={event => keyboard(event, index)}><item.icon size={18} aria-hidden="true" />{item.label}</button>)}</div>
     <section className="class-details-panel" id={panelId('summary')} role="tabpanel" aria-labelledby={tabId('summary')} hidden={section !== 'summary'} tabIndex={0}>
       <div className="class-section-intro"><h3>O que você quer fazer?</h3><p>Escolha uma seção para cuidar de cada parte da turma.</p></div>

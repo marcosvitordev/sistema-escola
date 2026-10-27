@@ -31,7 +31,7 @@ Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pes
 
 ## Detalhes da turma
 
-Ao abrir uma turma no painel de gestão, use as seções **Resumo**, **Alunos**, **Aulas e apostilas** e **Provas e atividades**. O resumo reúne os acessos principais. Em Alunos, é possível buscar, cadastrar um novo aluno diretamente na turma ou matricular alguém já cadastrado. As aulas têm busca por título/módulo, apostilas separadas e indicação de rascunho/publicação. Avaliações podem ser criadas e consultadas na própria seção. Os formulários em andamento permanecem ao trocar de seção na mesma janela.
+Ao abrir uma turma no painel de gestão, a página `/turmas/[id]` reúne as seções **Resumo**, **Alunos**, **Aulas e apostilas** e **Provas e atividades**. O resumo reúne os acessos principais. Em Alunos, é possível buscar, cadastrar um novo aluno diretamente na turma ou matricular alguém já cadastrado. As aulas têm busca por título/módulo, apostilas separadas e indicação de rascunho/publicação. Avaliações podem ser criadas e consultadas na própria seção. Os formulários em andamento permanecem ao trocar de seção na mesma página. A página tem acesso por link direto, recarregamento normal e botão para voltar às turmas; é restrita aos gestores autorizados da turma.
 
 ## Área simplificada do aluno
 
@@ -48,6 +48,8 @@ Os conteúdos são atualizados ao retornar à janela, a cada 30 segundos enquant
 Abra **Turmas → Abrir turma → Nova aula**. Crie a aula em rascunho, envie um PDF e selecione **Publicar aula**. Os alunos matriculados podem abrir o material, navegar pelas páginas, inserir respostas, movê-las, mudar fonte/cor e destacar regiões. O original não é alterado.
 
 As anotações são individuais e salvas após 700 ms de pausa. Cada atualização exige a revisão atual; conflitos preservam o rascunho e exigem escolha explícita. Rascunhos temporários são separados por usuário/documento/aba no navegador. A sincronização é repetida ao reconectar e a cada cinco segundos quando existem alterações pendentes.
+
+Para renomear um PDF já enviado, abra **Turma → Aulas e apostilas → Renomear**, ao lado da apostila. Digite o nome e selecione **Salvar nome**. O professor responsável e o administrador podem renomear; arquivo, respostas, entregas e correções permanecem vinculados à mesma apostila. O nome atualizado aparece para os alunos e nos downloads, incluindo a exportação respondida.
 
 O botão **Entregar apostila** bloqueia a edição depois de confirmar o salvamento. O professor usa **Acompanhar → Abrir trabalho** para consultar respostas, registrar comentário/nota e reabrir a edição. Há exportação do documento preenchido, sem alterar o original. A exportação inicial usa fonte Helvetica e aceita o repertório latino, incluindo português; caracteres fora desse repertório exibem erro de exportação.
 

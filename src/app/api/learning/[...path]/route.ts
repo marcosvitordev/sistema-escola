@@ -11,6 +11,12 @@ import { Prisma } from '@/generated/prisma/client';
 export const runtime = 'nodejs';
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const json = (value: unknown, status = 200) => NextResponse.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
+function pdfDisposition(title: string, filled = false) {
+  const base = title.replace(/\.pdf$/i, '').replace(/[\u0000-\u001f\u007f\\/:*?"<>|]/g, '_');
+  const filename = Buffer.from(`${base}${filled ? '-respondida' : ''}.pdf`, 'utf8').toString('utf8');
+  const encoded = encodeURIComponent(filename).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `attachment; filename="apostila${filled ? '-respondida' : ''}.pdf"; filename*=UTF-8''${encoded}`;
+}
 async function handler(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   try {
     const user = await currentUser();
@@ -61,6 +67,17 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     if (resource !== 'documents' || !id) return fail('Operação não encontrada.', 404);
     const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess, ...(!manage ? { published: true } : {}) } }, select: { id: true, title: true, pageCount: true, lesson: { select: { classId: true, title: true } } } });
     if (!document) return fail('Apostila não encontrada.', 404);
+    if (action === 'rename' && req.method === 'POST') {
+      if (!manage) return fail('Somente o professor responsável ou administrador pode renomear a apostila.', 403);
+      const parsed = z.object({ title: z.string().trim().min(1, 'Informe o nome da apostila.').max(150, 'Use até 150 caracteres no nome.').refine(title => !/[\u0000-\u001f\u007f]/.test(title), 'O nome não pode conter quebras de linha ou caracteres de controle.') }).safeParse(await req.json());
+      if (!parsed.success) return fail(parsed.error.issues[0]?.message || 'Confira o nome da apostila.');
+      const renamed = await db.$transaction(async tx => {
+        const result = await tx.pdfDocument.update({ where: { id }, data: { title: parsed.data.title }, select: { id: true, title: true } });
+        await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'pdf-rename', resourceId: id } });
+        return result;
+      });
+      return json(renamed);
+    }
     if (action === 'monitor' && req.method === 'GET' && manage) {
       const students = await db.enrollment.findMany({ where: { classId: document.lesson.classId }, select: { student: { select: { id: true, name: true, works: { where: { documentId: id }, select: { id: true, version: true, updatedAt: true, submittedAt: true, feedback: { orderBy: { createdAt: 'desc' }, take: 1 } } } } } }, orderBy: { student: { name: 'asc' } } });
       return json({ students });
@@ -70,7 +87,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     if (manage && studentId && !await db.enrollment.findFirst({ where: { classId: document.lesson.classId, studentId } })) return fail('Aluno não encontrado nesta turma.', 404);
     if (action === 'file' && req.method === 'GET') {
       const content = await db.pdfDocument.findUniqueOrThrow({ where: { id }, select: { content: true } });
-      return new NextResponse(new Uint8Array(content.content), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="apostila.pdf"', 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" } });
+      return new NextResponse(new Uint8Array(content.content), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': pdfDisposition(document.title), 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" } });
     }
     if (!studentId) {
       if (action === 'work' && req.method === 'GET') return json({ document, work: null, readOnly: true, userId: user.id });
@@ -119,7 +136,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       const annotations = annotationsSchema.parse(work?.annotations ?? []);
       let result: Uint8Array;
       try { result = await exportPdf(content.content, annotations); } catch { return fail('Não foi possível exportar. Utilize texto com caracteres latinos e revise a apostila.', 422); }
-      return new NextResponse(new Uint8Array(result), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="apostila-respondida.pdf"', 'Cache-Control': 'private, no-store' } });
+      return new NextResponse(new Uint8Array(result), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': pdfDisposition(document.title, true), 'Cache-Control': 'private, no-store' } });
     }
     return fail('Operação não permitida.', 403);
   } catch (error) {
