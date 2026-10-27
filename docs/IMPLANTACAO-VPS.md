@@ -2,6 +2,8 @@
 
 Endereço público: https://191.252.155.205 (sem domínio).
 
+Após a validação da implantação, o usuário solicitou e confirmou a limpeza dos dados. Foi criado um backup antes da operação. A VPS mantém apenas a instituição `ise` e a conta `admin`, com senha e configurações preservadas; os demais usuários, cursos, turmas, aulas, apostilas, avaliações e respostas foram removidos em uma transação. O banco local não foi alterado. Acesso HTTPS conferido após a limpeza.
+
 ## Serviços
 
 - Ubuntu 24.04, Node.js 22, PostgreSQL 17 e Nginx.
@@ -10,6 +12,7 @@ Endereço público: https://191.252.155.205 (sem domínio).
 - Banco `escola`, schema `escola`. Credenciais exclusivas em `/etc/aprender.env`, acessível apenas por root e pelo grupo da aplicação.
 - `APP_ORIGIN=https://191.252.155.205` valida a origem pública das escritas atrás do proxy HTTPS. Outros sites continuam bloqueados.
 - Nginx recebe conexões nas portas 80 e 443 e redireciona HTTP para HTTPS. Aplicação e PostgreSQL escutam somente em loopback.
+- Uploads aceitam até 5 MB (5.000.000 bytes) por arquivo. O proxy permite corpos de 6 MiB e a aplicação reserva até 5,5 MB para o multipart, validando separadamente o tamanho real do arquivo.
 - Firewall permite SSH, HTTP e HTTPS. Serviços habilitados na inicialização do servidor.
 
 Os cadastros, senhas protegidas por hash e materiais existentes no schema local `escola` foram transferidos. Sessões antigas foram encerradas na cópia de produção; é necessário entrar novamente. O schema de testes local não é publicado. O banco da VPS passa a ser independente do banco local.
@@ -52,3 +55,5 @@ Os modelos de serviço, proxy e agendamentos estão em `deploy/`. Contêm o IP d
 Build Linux e migrações aprovados. Renovação do certificado validada com `certbot renew --dry-run`. Backup restaurado com sucesso em um banco temporário separado e removido após a conferência: uma instituição, dois usuários, um curso e duas avaliações originais.
 
 Uma instituição temporária foi usada para testar pelo Chromium real: login administrativo e do aluno via HTTPS com cookie Secure/HttpOnly, bloqueio de origem externa nas três APIs de escrita, cadastro/matrícula, publicação e renderização de PDF, edição com autosave e retomada, exportação, entrega da avaliação e gabarito oculto até a liberação. Após a liberação, o aluno visualizou o erro e a resposta correta. Layout de celular e bloqueio de arquivo privado sem autenticação também conferidos. Os registros temporários foram removidos ao terminar.
+
+Atualização do limite de upload publicada: apostilas, imagens e anexos de respostas aceitam arquivos de exatamente 5.000.000 bytes; arquivos com 5.000.001 bytes foram rejeitados com HTTP 413 no endereço público. Os testes também conferiram a recuperação integral de PDF e anexo no limite. Dados temporários removidos após a validação, mantendo a plataforma limpa.

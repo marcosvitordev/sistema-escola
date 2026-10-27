@@ -4,7 +4,7 @@
 
 Monólito modular em Next.js: páginas React e API REST no mesmo serviço, com PostgreSQL/Prisma. Isso reduz custo operacional inicial e permite separar a API no futuro. Autenticação por usuário/matrícula, sem exigir e-mail pessoal. Sessões opacas revogáveis no banco, sem dados de autorização controlados pelo cliente.
 
-O PostgreSQL pode ser local ou hospedado no Supabase. A implementação inicial guarda PDFs privados no PostgreSQL (`bytea`, até 3 MB). A migração dos originais para armazenamento de objetos está prevista para escala; nenhum bucket público será necessário. Todas as autorizações são verificadas antes de transmitir documentos. A escolha de CSS simples nesta fundação evita dependências adicionais; Tailwind/shadcn podem ser incorporados com a evolução dos componentes.
+O PostgreSQL pode ser local ou hospedado no Supabase. A implementação inicial guarda PDFs privados no PostgreSQL (`bytea`, até 5 MB). A migração dos originais para armazenamento de objetos está prevista para escala; nenhum bucket público será necessário. Todas as autorizações são verificadas antes de transmitir documentos. A escolha de CSS simples nesta fundação evita dependências adicionais; Tailwind/shadcn podem ser incorporados com a evolução dos componentes.
 
 ## Modelo implementado
 

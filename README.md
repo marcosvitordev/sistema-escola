@@ -45,7 +45,7 @@ As anotações são individuais e salvas após 700 ms de pausa. Cada atualizaç�
 
 O botão **Entregar apostila** bloqueia a edição depois de confirmar o salvamento. O professor usa **Acompanhar → Abrir trabalho** para consultar respostas, registrar comentário/nota e reabrir a edição. Há exportação do documento preenchido, sem alterar o original. A exportação inicial usa fonte Helvetica e aceita o repertório latino, incluindo português; caracteres fora desse repertório exibem erro de exportação.
 
-Nesta versão os originais ficam em `bytea` no PostgreSQL, privados e protegidos pela mesma autorização da API. Limites: **3 MB por arquivo, 200 páginas**, até 400 mil caracteres de JSON de anotações. Isso permite persistência real em desenvolvimento e implantação inicial sem credenciais adicionais. Migre os originais para armazenamento de objetos privado (como Supabase Storage) antes de ampliar o volume; o navegador deve continuar acessando documentos pela autorização do servidor. Rascunhos locais exigem espaço no armazenamento do navegador e um perfil individual em computadores compartilhados.
+Nesta versão os originais ficam em `bytea` no PostgreSQL, privados e protegidos pela mesma autorização da API. Limites: **5 MB por arquivo, 200 páginas**, até 400 mil caracteres de JSON de anotações. Isso permite persistência real em desenvolvimento e implantação inicial sem credenciais adicionais. Migre os originais para armazenamento de objetos privado (como Supabase Storage) antes de ampliar o volume; o navegador deve continuar acessando documentos pela autorização do servidor. Rascunhos locais exigem espaço no armazenamento do navegador e um perfil individual em computadores compartilhados.
 
 O administrador pode cadastrar alunos sem turma e matriculá-los depois. Professores cadastram alunos diretamente em uma de suas turmas; não podem buscar cadastros de turmas de outros professores.
 
@@ -61,7 +61,7 @@ O servidor verifica prazo e limite de tentativas em cada operação. Uma tentati
 
 Questões objetivas têm correção determinística, sem IA; associação/lacunas recebem pontuação proporcional aos itens corretos. Discursivas, arquivos e relatos de atividade prática são corrigidos pelo professor. A área de entregas mostra alunos sem início, em andamento, aguardando correção e corrigidos. As notas e feedbacks só ficam visíveis aos alunos após **Liberar notas**, e somente quando a tentativa estiver totalmente corrigida. A pontuação e sua equivalência de 0 a 10 são exibidas separadamente.
 
-Anexos privados ficam no PostgreSQL, com validação de tamanho e assinatura do arquivo. Formatos das respostas: PDF, PNG, JPEG ou TXT UTF-8, até 3 MB. Imagens das questões: PNG/JPEG, até 3 MB. O gabarito aparece somente na própria tentativa entregue e totalmente corrigida, depois da liberação das notas. Cada questão mostra acerto/erro/acerto parcial, resposta correta, pontuação e feedback; a definição e os rascunhos continuam sem gabarito. Respostas dos colegas permanecem privadas.
+Anexos privados ficam no PostgreSQL, com validação de tamanho e assinatura do arquivo. Formatos das respostas: PDF, PNG, JPEG ou TXT UTF-8, até 5 MB. Imagens das questões: PNG/JPEG, até 5 MB. O gabarito aparece somente na própria tentativa entregue e totalmente corrigida, depois da liberação das notas. Cada questão mostra acerto/erro/acerto parcial, resposta correta, pontuação e feedback; a definição e os rascunhos continuam sem gabarito. Respostas dos colegas permanecem privadas.
 
 ## Comandos
 

@@ -8,7 +8,7 @@ Não há dados fictícios ou integração simulada: as operações dependem do P
 
 ## Fase 2 — Núcleo do editor validado
 
-Segunda migração criada/aplicada: aulas, documentos imutáveis, trabalhos individuais, revisões e histórico de feedback. Implementados upload privado de PDF (3 MB/200 páginas), publicação de aulas, PDF.js com worker local, navegação/zoom, inserção/edição/movimentação/exclusão de texto, fonte/cor, destaque por região, autosave com revisão otimista, rascunho local por usuário/documento/aba, sincronização, conflito explícito, entrega, acompanhamento e correção/reabertura pelo professor, exportação com pdf-lib.
+Segunda migração criada/aplicada: aulas, documentos imutáveis, trabalhos individuais, revisões e histórico de feedback. Implementados upload privado de PDF (5 MB/200 páginas), publicação de aulas, PDF.js com worker local, navegação/zoom, inserção/edição/movimentação/exclusão de texto, fonte/cor, destaque por região, autosave com revisão otimista, rascunho local por usuário/documento/aba, sincronização, conflito explícito, entrega, acompanhamento e correção/reabertura pelo professor, exportação com pdf-lib.
 
 Os originais são armazenados no PostgreSQL, sem URLs públicas. Armazenamento de objetos dedicado ainda será integrado. Módulos são um campo de organização da aula nesta etapa; a entidade própria de módulo será acrescentada quando sua administração for implementada.
 

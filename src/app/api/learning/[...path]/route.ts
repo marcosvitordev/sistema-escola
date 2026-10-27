@@ -20,7 +20,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const manage = user.role !== 'STUDENT';
     const write = req.method !== 'GET';
     if (write && !allowedRequestOrigin(req)) return fail('Origem não permitida.', 403);
-    if (Number(req.headers.get('content-length') || 0) > 3_500_000) return fail('O limite de upload é 3 MB.', 413);
+    if (Number(req.headers.get('content-length') || 0) > 5_500_000) return fail('O limite de upload é 5 MB.', 413);
     const classAccess = { course: { institutionId: user.institutionId }, ...(user.role === 'TEACHER' ? { teacherId: user.id } : !manage ? { enrollments: { some: { studentId: user.id } } } : {}) };
 
     if (resource === 'classes' && id && req.method === 'GET') {
@@ -47,7 +47,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       if (action === 'documents' && req.method === 'POST') {
         const file = (await req.formData()).get('file');
         if (!(file instanceof File) || file.type !== 'application/pdf' || !file.name.toLowerCase().endsWith('.pdf')) return fail('Selecione um arquivo PDF.');
-        if (!file.size || file.size > 3_000_000) return fail('O PDF deve ter até 3 MB.', 413);
+        if (!file.size || file.size > 5_000_000) return fail('O PDF deve ter até 5 MB.', 413);
         const bytes = new Uint8Array(await file.arrayBuffer());
         if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') return fail('O arquivo não é um PDF válido.');
         let pdf: PDFDocument;

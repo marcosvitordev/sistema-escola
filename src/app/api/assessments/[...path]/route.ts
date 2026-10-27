@@ -21,7 +21,7 @@ async function readBytes(req: NextRequest, limit: number) {
 }
 async function body(req: NextRequest) { return JSON.parse((await readBytes(req, 350_000)).toString('utf8')) as unknown; }
 async function multipart(req: NextRequest) {
-  const bytes = await readBytes(req, 3_500_000);
+  const bytes = await readBytes(req, 5_500_000);
   try { return await new Response(new Uint8Array(bytes), { headers: { 'Content-Type': req.headers.get('content-type') || '' } }).formData(); }
   catch { throw new RequestError('O envio do arquivo está inválido.'); }
 }
@@ -43,7 +43,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     if (!user) throw new RequestError('Entre para continuar.', 401);
     if (user.mustChangePassword) throw new RequestError('Troque sua senha inicial.', 403);
     if (req.method !== 'GET' && !allowedRequestOrigin(req)) throw new RequestError('Origem não permitida.', 403);
-    if (Number(req.headers.get('content-length') || 0) > 3_500_000) throw new RequestError('O limite de arquivo é 3 MB.', 413);
+    if (Number(req.headers.get('content-length') || 0) > 5_500_000) throw new RequestError('O limite de arquivo é 5 MB.', 413);
     const [resource, id, action] = (await context.params).path;
     const manage = user.role !== 'STUDENT';
     const classAccess: Prisma.ClassWhereInput = { course: { institutionId: user.institutionId }, ...(user.role === 'TEACHER' ? { teacherId: user.id } : !manage ? { enrollments: { some: { studentId: user.id } } } : {}) };
@@ -237,7 +237,8 @@ async function validateFiles(tx: Prisma.TransactionClient, questions: Question[]
   for (const q of questions.filter(q => q.type === 'FILE')) { const id = answers[q.id]; if (id && (typeof id !== 'string' || !await tx.assessmentFile.findFirst({ where: { id, questionId: q.id, attemptId }, select: { id: true } }))) throw new RequestError('O arquivo não pertence a esta resposta.'); }
 }
 async function validatedFile(value: FormDataEntryValue | null, imageOnly: boolean) {
-  if (!(value instanceof File) || !value.size || value.size > 3_000_000) throw new RequestError('Selecione um arquivo de até 3 MB.');
+  if (!(value instanceof File) || !value.size) throw new RequestError('Selecione um arquivo de até 5 MB.');
+  if (value.size > 5_000_000) throw new RequestError('O arquivo deve ter até 5 MB.', 413);
   const content = new Uint8Array(await value.arrayBuffer());
   const prefix = Buffer.from(content.slice(0, 8)); let mimeType = '';
   if (prefix.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) mimeType = 'image/png';
