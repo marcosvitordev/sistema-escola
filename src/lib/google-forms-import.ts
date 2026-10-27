@@ -13,6 +13,7 @@ const question = z.object({
   _aprenderType: z.string().max(100).optional(),
 });
 const sourceSchema = z.object({
+  _aprenderWarnings: z.array(z.string().max(25_000)).max(500).optional(),
   info: z.object({ title: text, description: text.optional() }),
   items: z.array(z.object({
     title: text.optional(), description: text.optional(),
@@ -34,7 +35,7 @@ export function importGoogleForm(source: unknown): GoogleFormsPreview {
   if (title.length < 3 || title.length > 150) throw new GoogleFormsImportError('O título do formulário deve ter entre 3 e 150 caracteres. Ajuste o título e exporte novamente.');
   if (instructions.length > 5000) throw new GoogleFormsImportError('A descrição do formulário excede 5.000 caracteres. Reduza a descrição antes de importar.');
   const questions: QuestionView[] = [];
-  const warnings = new Set<string>();
+  const warnings = new Set<string>(form._aprenderWarnings || []);
   let section = '';
   let needsAnswerKey = 0;
   function add(raw: z.infer<typeof question>, prompt: string, groupChoice?: z.infer<typeof choice>) {

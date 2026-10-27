@@ -86,6 +86,12 @@ Múltipla escolha/lista e respostas curtas compatíveis preservam os gabaritos d
 
 Sete testes do conversor/exportador simulados aprovados, oito testes de regressão das avaliações aprovados e builds local/Linux aprovados. Fluxo público no Chromium validou exportador disponível, arquivo inválido, prévia sem gravação, permissões, atualização da lista de aulas ao voltar à seção, gabarito ausente sem seleção automática (inclusive após remover alternativa), revisão, salvamento privado e celular sem rolagem horizontal. O exportador foi validado por simulação e documentação oficial, sem execução em conta Google real. Registros temporários removidos. Instruções e limites em `docs/IMPORTAR-GOOGLE-FORMS.md`.
 
+## Exportador Google Forms — compatibilidade v2
+
+Após relato real de operação incompatível no Apps Script, removidas as consultas de feedback e navegação que não são usadas na importação. Leituras de pontuação, gabarito e opção Outro agora tratam falhas e geram avisos para revisão. Se uma alternativa não puder ter o gabarito lido, o gabarito inteiro da questão permanece pendente, evitando adivinhar uma resposta com dados parciais. O importador mostra os avisos do exportador.
+
+Oito testes aprovados, incluindo simulação da mesma exceção em métodos opcionais. TypeScript e build Linux aprovados. Verificação do arquivo público v2, exportação simulada com falhas e prévia autenticada na VPS aprovadas; sem gravação automática de avaliação. O código já copiado no Google precisa ser substituído pelo usuário pela nova função. Não houve execução em conta Google real.
+
 ## Pendências gerais
 
 - Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.

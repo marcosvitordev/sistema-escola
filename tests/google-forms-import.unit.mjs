@@ -76,7 +76,8 @@ test('rejeita formato incorreto, excesso de questões e perguntas grandes sem sa
 test('exportador gera JSON compatível usando só o formulário atual e download seguro', () => {
   const script = readFileSync(new URL('../public/exportar-google-forms.gs', import.meta.url), 'utf8');
   let exported, dialog;
-  const typed = { isRequired: () => true, getPoints: () => 2, getChoices: () => [{ getValue: () => 'A', isCorrectAnswer: () => true, getPageNavigationType: () => null }, { getValue: () => 'B', isCorrectAnswer: () => false, getPageNavigationType: () => null }], hasOtherOption: () => false };
+  const unsupported = () => { throw new Error('Este tipo de pergunta não é compatível com a operação especificada.'); };
+  const typed = { isRequired: () => true, getPoints: () => 2, getFeedbackForCorrect: unsupported, getFeedbackForIncorrect: unsupported, getGeneralFeedback: unsupported, getChoices: () => [{ getValue: () => 'A', isCorrectAnswer: () => true, getPageNavigationType: unsupported }, { getValue: () => 'B', isCorrectAnswer: () => false, getPageNavigationType: unsupported }], hasOtherOption: () => false };
   const sourceItem = { getType: () => 'MULTIPLE_CHOICE', getTitle: () => 'Pergunta com </script> no texto', getHelpText: () => '', asMultipleChoiceItem: () => typed };
   runInNewContext(`${script}\nexportarParaAprender();`, {
     FormApp: { getActiveForm: () => ({ getTitle: () => 'Formulário exportado', getDescription: () => '', isQuiz: () => true, getItems: () => [sourceItem] }), getUi: () => ({ showModalDialog: value => { dialog = value.html; } }) },
@@ -88,4 +89,24 @@ test('exportador gera JSON compatível usando só o formulário atual e download
   assert(!dialog.includes('</script>'));
   assert(!script.includes('getResponses('));
   assert(!script.includes('UrlFetchApp'));
+});
+
+test('falha de pontuação ou gabarito gera aviso sem interromper ou adivinhar a resposta', () => {
+  const script = readFileSync(new URL('../public/exportar-google-forms.gs', import.meta.url), 'utf8');
+  const unsupported = () => { throw new Error('Este tipo de pergunta não é compatível com a operação especificada.'); };
+  let exported;
+  const typed = { isRequired: () => true, getPoints: unsupported, getFeedbackForCorrect: unsupported, getGeneralFeedback: unsupported, getChoices: () => [{ getValue: () => 'A', isCorrectAnswer: () => true }, { getValue: () => 'B', isCorrectAnswer: unsupported }], hasOtherOption: () => false };
+  const sourceItem = { getType: () => 'MULTIPLE_CHOICE', getTitle: () => 'Pergunta com metadados incompatíveis', getHelpText: () => '', asMultipleChoiceItem: () => typed };
+  runInNewContext(`${script}\nexportarParaAprender();`, {
+    FormApp: { getActiveForm: () => ({ getTitle: () => 'Teste de compatibilidade', getDescription: () => '', isQuiz: () => true, getItems: () => [sourceItem] }), getUi: () => ({ showModalDialog() {} }) },
+    Utilities: { newBlob: value => { exported = JSON.parse(value); return { getBytes: () => Buffer.from(value) }; }, base64Encode: value => Buffer.from(value).toString('base64') },
+    HtmlService: { createHtmlOutput: html => ({ html, setWidth() { return this; }, setHeight() { return this; } }) },
+  });
+  const preview = importGoogleForm(exported);
+  assert.equal(preview.questions.length, 1);
+  assert.equal(preview.questions[0].points, 1);
+  assert.equal(preview.questions[0].answerKey, null);
+  assert.equal(preview.needsAnswerKey, 1);
+  assert(preview.warnings.some(warning => warning.includes('não foi possível ler pontuação')));
+  assert(preview.warnings.some(warning => warning.includes('não foi possível ler gabarito')));
 });

@@ -14,6 +14,8 @@ Abra **Turma → Provas e atividades → Importar Google Forms**. A turma precis
 
 O exportador está em `public/exportar-google-forms.gs`. Usa o formulário atual, com a anotação `@OnlyCurrentDoc`; não busca respostas de alunos, não altera o formulário e não envia dados a serviços externos. O download contém perguntas e gabaritos disponíveis, portanto deve ser usado pelo responsável pela avaliação.
 
+Se já instalou uma versão anterior, substitua a função `exportarParaAprender` pelo código atualizado, preservando os outros scripts do formulário. Evite manter duas funções com esse nome em arquivos diferentes. A versão 2 não consulta feedback/navegação dos itens e trata falhas na leitura de pontuação/gabarito como avisos na prévia, sem inventar respostas corretas.
+
 Também é aceito o JSON estrutural retornado pela API oficial do Google Forms (`info` e `items`). Planilhas/CSV de respostas e links de formulário não são arquivos de importação.
 
 ## Conversões e revisão

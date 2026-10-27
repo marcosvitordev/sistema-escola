@@ -1,14 +1,24 @@
 /** @OnlyCurrentDoc */
+// Exportador Aprender v2 — compatibilidade com tipos de pergunta do Forms.
 // Execute no Apps Script vinculado ao seu Google Forms.
 // Lê apenas a estrutura do formulário atual. Não lê respostas de alunos,
 // não altera o formulário e não envia dados pela rede.
 function exportarParaAprender() {
   var form = FormApp.getActiveForm();
   if (!form) throw new Error('Abra o editor de scripts pelo menu do seu Google Forms.');
-  var payload = { info: { title: form.getTitle(), description: form.getDescription() || '' }, items: [] };
+  var payload = { info: { title: form.getTitle(), description: form.getDescription() || '' }, items: [], _aprenderWarnings: ['Comentários automáticos e desvios entre seções do Google não são exportados. Revise essas configurações.'] };
+  var quiz = form.isQuiz();
   form.getItems().forEach(function(item) {
     var type = String(item.getType());
     var result = { title: item.getTitle(), description: item.getHelpText() || '' };
+    function readOptional(label, operation, fallback) {
+      try { return operation(); }
+      catch (error) {
+        var warning = 'Pergunta "' + result.title + '": não foi possível ler ' + label + '. Confira esse dado na revisão da importação.';
+        if (payload._aprenderWarnings.indexOf(warning) < 0) payload._aprenderWarnings.push(warning);
+        return fallback;
+      }
+    }
     if (type === 'PAGE_BREAK') result.pageBreakItem = {};
     else if (type === 'SECTION_HEADER') result.textItem = {};
     else if (type === 'IMAGE') result.imageItem = {};
@@ -29,25 +39,24 @@ function exportarParaAprender() {
         };
       }
       if (typed) {
-        question.required = typed.isRequired();
-        question.grading = { pointValue: form.isQuiz() ? typed.getPoints() : 0 };
-        if (typeof typed.getFeedbackForCorrect === 'function' && typed.getFeedbackForCorrect()) question.grading.whenRight = { text: typed.getFeedbackForCorrect().getText() };
-        if (typeof typed.getFeedbackForIncorrect === 'function' && typed.getFeedbackForIncorrect()) question.grading.whenWrong = { text: typed.getFeedbackForIncorrect().getText() };
-        if (typeof typed.getGeneralFeedback === 'function' && typed.getGeneralFeedback()) question.grading.generalFeedback = { text: typed.getGeneralFeedback().getText() };
+        question.required = readOptional('obrigatoriedade', function() { return typed.isRequired(); }, false);
+        var points = quiz ? readOptional('pontuação', function() { return typed.getPoints(); }, null) : 0;
+        question.grading = points === null ? {} : { pointValue: points };
         if (type === 'MULTIPLE_CHOICE' || type === 'LIST' || type === 'CHECKBOX') {
           var choices = typed.getChoices();
           var correct = [];
+          var completeKey = true;
           question.choiceQuestion = { type: type === 'CHECKBOX' ? 'CHECKBOX' : type === 'LIST' ? 'DROP_DOWN' : 'RADIO', options: choices.map(function(choice) {
-            if (form.isQuiz() && choice.isCorrectAnswer()) correct.push({ value: choice.getValue() });
-            var option = { value: choice.getValue() };
-            if (type === 'MULTIPLE_CHOICE') {
-              var navigation = choice.getPageNavigationType();
-              if (navigation) option.goToAction = String(navigation);
+            if (quiz) {
+              var isCorrect = readOptional('gabarito', function() { return choice.isCorrectAnswer(); }, null);
+              if (isCorrect === null) completeKey = false;
+              else if (isCorrect) correct.push({ value: choice.getValue() });
             }
+            var option = { value: choice.getValue() };
             return option;
           }) };
-          if (correct.length) question.grading.correctAnswers = { answers: correct };
-          if ((type === 'MULTIPLE_CHOICE' || type === 'CHECKBOX') && typed.hasOtherOption()) question.choiceQuestion.options.push({ isOther: true });
+          if (completeKey && correct.length) question.grading.correctAnswers = { answers: correct };
+          if ((type === 'MULTIPLE_CHOICE' || type === 'CHECKBOX') && readOptional('opção Outro', function() { return typed.hasOtherOption(); }, false)) question.choiceQuestion.options.push({ isOther: true });
         } else question.textQuestion = { paragraph: type === 'PARAGRAPH_TEXT' };
       } else if (!result.questionGroupItem) question._aprenderType = type;
       if (!result.questionGroupItem) result.questionItem = { question: question };
