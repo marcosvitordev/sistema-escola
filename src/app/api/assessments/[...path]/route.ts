@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { allowedRequestOrigin } from '@/lib/request-origin';
 import { currentUser } from '@/lib/auth';
 import { Prisma } from '@/generated/prisma/client';
 import { assessmentSchema, answersSchema, automaticScores, manualQuestion, validateAnswers, type QuestionDefinition, type Answers } from '@/lib/assessments';
@@ -41,7 +42,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const user = await currentUser();
     if (!user) throw new RequestError('Entre para continuar.', 401);
     if (user.mustChangePassword) throw new RequestError('Troque sua senha inicial.', 403);
-    if (req.method !== 'GET' && req.headers.get('origin') && req.headers.get('origin') !== req.nextUrl.origin) throw new RequestError('Origem não permitida.', 403);
+    if (req.method !== 'GET' && !allowedRequestOrigin(req)) throw new RequestError('Origem não permitida.', 403);
     if (Number(req.headers.get('content-length') || 0) > 3_500_000) throw new RequestError('O limite de arquivo é 3 MB.', 413);
     const [resource, id, action] = (await context.params).path;
     const manage = user.role !== 'STUDENT';

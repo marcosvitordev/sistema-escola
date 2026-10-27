@@ -1,0 +1,8 @@
+[Unit]
+Description=Renovar certificado HTTPS do Aprender
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/aprender-certbot/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"

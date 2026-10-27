@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PDFDocument } from 'pdf-lib';
 import { db } from '@/lib/db';
+import { allowedRequestOrigin } from '@/lib/request-origin';
 import { currentUser, digest } from '@/lib/auth';
 import { annotationsSchema } from '@/lib/pdf-annotations';
 import { exportPdf } from '@/lib/pdf-export';
@@ -18,7 +19,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const [resource, id, action] = (await context.params).path;
     const manage = user.role !== 'STUDENT';
     const write = req.method !== 'GET';
-    if (write && req.headers.get('origin') && req.headers.get('origin') !== req.nextUrl.origin) return fail('Origem não permitida.', 403);
+    if (write && !allowedRequestOrigin(req)) return fail('Origem não permitida.', 403);
     if (Number(req.headers.get('content-length') || 0) > 3_500_000) return fail('O limite de upload é 3 MB.', 413);
     const classAccess = { course: { institutionId: user.institutionId }, ...(user.role === 'TEACHER' ? { teacherId: user.id } : !manage ? { enrollments: { some: { studentId: user.id } } } : {}) };
 

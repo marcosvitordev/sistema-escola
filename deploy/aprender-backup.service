@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup PostgreSQL da plataforma Aprender
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/aprender-backup
+UMask=0077

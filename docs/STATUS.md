@@ -52,6 +52,12 @@ Após entrega, correção completa e liberação das notas, cada questão mostra
 
 O gabarito é enviado somente na consulta da própria tentativa entregue e corrigida, com notas liberadas. Continua oculto na definição pública, nos rascunhos, antes da liberação e para outros alunos. Ao ocultar as notas, novas consultas também deixam de retornar o gabarito. Build aprovado e oito testes de avaliações cobrem esses controles e a revisão no navegador, incluindo erros, acertos parciais e feedback manual no celular.
 
+## Implantação na VPS
+
+Plataforma publicada em https://191.252.155.205, com certificado público pelo IP, renovação automática, Nginx, PostgreSQL 17 privado e execução como usuário sem privilégios via systemd. Firewall permite apenas SSH/HTTP/HTTPS. Dados de uso locais migrados, preservando cadastros e senhas; banco de testes não transferido. Banco local e remoto passam a ser independentes.
+
+Backup diário com retenção de 14 dias na própria VPS, restauração validada em banco separado. Fluxo de navegador real aprovado no endereço público: login, cookie seguro, PDF/upload/autosave/exportação, avaliação/entrega/revisão dos erros e proteção de dados. Registros de validação removidos. Origem pública configurável por `APP_ORIGIN` corrige o uso atrás do proxy sem aceitar origens externas. Consulte `docs/IMPLANTACAO-VPS.md` para operação e limites.
+
 ## Pendências gerais
 
 - Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.
@@ -60,7 +66,7 @@ O gabarito é enviado somente na consulta da própria tentativa entregue e corri
 - Ampliar o editor: desenho livre, camada de seleção do texto original, campos AcroForm, fontes Unicode completas e controle visual de tamanho das caixas/destaques.
 - Integrar Supabase Storage ou equivalente para originais, com quotas e backups dos objetos.
 - Fase 4: relatórios PDF/Excel, médias por turma/avaliação e evolução dos indicadores de desempenho.
-- Revisão operacional de segurança/LGPD, backups e implantação.
+- Política de LGPD/retenção, monitoramento externo e cópia dos backups fora da VPS.
 
 ## Ocorrências do ambiente
 

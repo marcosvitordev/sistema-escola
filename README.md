@@ -61,7 +61,7 @@ O servidor verifica prazo e limite de tentativas em cada operação. Uma tentati
 
 Questões objetivas têm correção determinística, sem IA; associação/lacunas recebem pontuação proporcional aos itens corretos. Discursivas, arquivos e relatos de atividade prática são corrigidos pelo professor. A área de entregas mostra alunos sem início, em andamento, aguardando correção e corrigidos. As notas e feedbacks só ficam visíveis aos alunos após **Liberar notas**, e somente quando a tentativa estiver totalmente corrigida. A pontuação e sua equivalência de 0 a 10 são exibidas separadamente.
 
-Anexos privados ficam no PostgreSQL, com validação de tamanho e assinatura do arquivo. Formatos das respostas: PDF, PNG, JPEG ou TXT UTF-8, até 3 MB. Imagens das questões: PNG/JPEG, até 3 MB. A API não envia gabaritos nem respostas de outros alunos à área do estudante.
+Anexos privados ficam no PostgreSQL, com validação de tamanho e assinatura do arquivo. Formatos das respostas: PDF, PNG, JPEG ou TXT UTF-8, até 3 MB. Imagens das questões: PNG/JPEG, até 3 MB. O gabarito aparece somente na própria tentativa entregue e totalmente corrigida, depois da liberação das notas. Cada questão mostra acerto/erro/acerto parcial, resposta correta, pontuação e feedback; a definição e os rascunhos continuam sem gabarito. Respostas dos colegas permanecem privadas.
 
 ## Comandos
 
@@ -86,4 +86,4 @@ Use uma credencial PostgreSQL exclusiva da aplicação, acesso restrito ao schem
 
 ## Documentação
 
-Veja [arquitetura e modelo](docs/ARQUITETURA.md) e [entregas e pendências](docs/STATUS.md). Não há publicação automática em Vercel ou alterações em contas externas nesta entrega.
+Veja [arquitetura e modelo](docs/ARQUITETURA.md), [entregas e pendências](docs/STATUS.md) e [operação na VPS](docs/IMPLANTACAO-VPS.md). A implantação de produção usa a VPS autorizada, com HTTPS pelo IP.

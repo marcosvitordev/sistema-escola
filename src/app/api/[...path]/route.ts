@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { Prisma } from '@/generated/prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { allowedRequestOrigin } from '@/lib/request-origin';
 import { createSession, currentUser, digest } from '@/lib/auth';
 import * as v from '@/lib/validation';
 
@@ -15,7 +16,7 @@ async function handler(req: NextRequest, ctx: { params: Promise<{ path: string[]
   try {
     const path = (await ctx.params).path.join('/');
     const write = req.method !== 'GET';
-    if (write && req.headers.get('origin') && req.headers.get('origin') !== req.nextUrl.origin) return fail('Origem não permitida.', 403);
+    if (write && !allowedRequestOrigin(req)) return fail('Origem não permitida.', 403);
     if (Number(req.headers.get('content-length') || 0) > 100_000) return fail('Requisição muito grande.', 413);
     if (path === 'setup' && req.method === 'GET') return NextResponse.json({ available: await db.institution.count() === 0 });
     if (path === 'setup' && req.method === 'POST') {

@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup diário do Aprender às 03h no Acre
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

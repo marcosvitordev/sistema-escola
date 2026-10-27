@@ -8,3 +8,4 @@ playwright-report/
 src/generated/
 .next-test/
 public/pdf.worker.min.mjs
+.deployment/
