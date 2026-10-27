@@ -1,0 +1,51 @@
+.learning{margin-top:30px;padding-top:15px;border-top:1px solid var(--line)}.lesson-card{border:1px solid var(--line);padding:18px;border-radius:9px;margin:15px 0}.lesson-card h3{font-size:16px}.lesson-card .section-heading{margin-bottom:12px}.lesson-actions{display:flex;gap:15px;margin-top:18px;align-items:center;flex-wrap:wrap}.lesson-actions button{font-size:11px;padding:9px}.upload-label{position:relative;display:flex;flex-direction:row;align-items:center;gap:7px;color:var(--primary);font-size:11px;cursor:pointer}.upload-label input{width:100%;height:100%;position:absolute;inset:0;opacity:0;cursor:pointer}.upload-label:focus-within{outline:3px solid #6dc5a5;outline-offset:5px}.document-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.document-row>div{flex:1;min-width:120px}.document-row strong{font-size:11px;overflow-wrap:anywhere}.document-row small{display:block;font-size:10px;margin-top:5px}.button-link{background:var(--primary);color:var(--surface);text-decoration:none;display:inline-flex;padding:9px 12px;border-radius:7px;font-size:11px;font-weight:600}a{color:var(--primary)}.editor{min-height:100vh;background:var(--bg)}.editor-header{display:flex;align-items:center;gap:20px;padding:17px 25px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}.editor-header h1{font-size:16px;letter-spacing:-.3px;margin:0 0 6px;max-width:350px;overflow-wrap:anywhere}.editor-back{display:flex;gap:7px;align-items:center;font-size:11px;text-decoration:none}.editor-header small{font-size:10px}.editor-header button{padding:10px 12px;font-size:11px}.save-status{font-size:11px;color:var(--primary);margin-left:auto}.editor-toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 25px;background:var(--surface);border-bottom:1px solid var(--line)}.editor-toolbar label{font-size:9px;gap:3px}.editor-toolbar input,.editor-toolbar select{padding:5px 7px;font-size:11px;height:30px}.editor-toolbar input[type=number]{width:60px}.editor-toolbar input[type=color]{width:42px;padding:2px}.editor-toolbar .secondary{padding:8px;font-size:10px}.tool-group{display:flex;gap:6px;align-items:center}.tool-group>span{font-size:10px;color:var(--muted)}.tool{background:transparent;color:var(--muted);padding:9px;font-size:10px}.tool.active{background:var(--soft);color:var(--primary);border-color:var(--line)}.editor-hint{font-size:11px;margin:0;padding:12px 25px;color:var(--muted)}.pdf-scroll{overflow:auto;padding:25px;min-height:60vh;text-align:center;background:#dce2df}.pdf-sheet{position:relative;display:inline-block;background:white;box-shadow:0 3px 18px #1c3e3326;vertical-align:top;flex-shrink:0;text-align:left;isolation:isolate}.pdf-note{position:absolute;z-index:2;border:1px solid transparent;min-width:0}.pdf-note.text{pointer-events:auto}.pdf-note.highlight{opacity:.35;cursor:pointer}.pdf-note.selected{border:1px dashed #287660}.pdf-note textarea{position:absolute;inset:0;width:100%;height:100%;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;font-family:Arial,sans-serif;resize:none;overflow:hidden;white-space:pre;min-height:0;outline:none!important;box-shadow:none;line-height:1.3}.move-handle{position:absolute;top:-23px;left:-1px;padding:4px;border-radius:3px;background:#226353;color:white;touch-action:none;z-index:4}.pdf-note.highlight .move-handle{opacity:1}.editor>.error,.conflict-box{margin:15px 25px}.conflict-box{padding:20px;border:1px solid #dca458;border-radius:8px;background:#fff7e8;color:#61431c}.conflict-box p{font-size:12px;color:#765a35}.conflict-box button{margin-right:10px;font-size:11px}.feedback{margin:25px auto;max-width:850px}.feedback article{border-bottom:1px solid var(--line);padding:15px 0}.feedback p{white-space:pre-wrap}.checkbox-label{flex-direction:row;align-items:center;gap:10px}.checkbox-label input{width:auto}.modal:has(.learning){width:min(850px,calc(100vw - 32px))}
+@media(max-width:760px){.editor-header{gap:12px;padding:15px}.editor-header h1{font-size:13px;max-width:210px}.editor-header>div{flex:1}.save-status{width:100%;margin-left:0}.editor-toolbar{padding:10px 15px;gap:12px}.editor-hint{padding:12px 15px}.pdf-scroll{padding:15px;text-align:left}.feedback{margin:15px}.editor>.error,.conflict-box{margin:12px 15px}.document-row .button-link{font-size:10px}.lesson-card{padding:13px}.learning .section-heading{align-items:center}}
+
+/* Keep the tools and saving feedback available while reading any part of a page. */
+.editor-controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  box-shadow: 0 4px 14px #173c2b12;
+}
+.feedback > summary { cursor: pointer; font-size: 19px; font-weight: 700; }
+.editor-document-title { flex: 1; }
+.editor-toolbar { gap: 12px 24px; padding: 12px 25px; }
+.reader-controls, .writing-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.writing-controls { padding-left: 20px; border-left: 1px solid var(--line); }
+.editor-toolbar label { font-size: 11px; }
+.editor-toolbar select { height: 36px; font-size: 12px; min-width: 60px; }
+.editor-toolbar button, .text-options summary { min-height: 44px; font-size: 12px; padding: 10px 12px; }
+.editor-toolbar .tool { border: 1px solid var(--line); color: var(--ink); }
+.editor-toolbar .tool.active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
+.page-controls > span { font-size: 12px; }
+.text-options { position: relative; }
+.text-options summary { display: flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 7px; border: 1px solid var(--line); list-style: none; }
+.text-options summary::-webkit-details-marker { display: none; }
+.text-options summary:focus-visible { outline: 3px solid #6dc5a5; outline-offset: 3px; }
+.text-options[open] summary { background: var(--soft); }
+.text-options-panel { position: absolute; right: 0; top: calc(100% + 8px); width: 230px; padding: 18px; display: flex; flex-wrap: wrap; gap: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 8px 25px #173c2b26; z-index: 2; }
+.text-options-panel small { font-size: 11px; line-height: 1.5; }
+.editor-guidance { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 25px; border-bottom: 1px solid var(--line); }
+.editor-guidance .editor-hint { font-size: 12px; margin: 0; padding: 0; }
+.editor-guidance .save-status { flex-shrink: 0; font-size: 11px; width: auto; }
+.pdf-sheet:has(.pdf-note) { scroll-margin-top: 180px; }
+.pdf-note textarea::placeholder { color: #5e786d; font-size: 12px; }
+.pdf-note.text:has(textarea:placeholder-shown) { border: 1px dashed #287660; background: #edf7f1bf; }
+.move-handle { min-width: 30px; min-height: 28px; top: -29px; }
+@media(max-width:1100px) {
+  .writing-controls { padding-left: 0; border-left: 0; }
+}
+@media(max-width:760px) {
+  .editor-toolbar { padding: 10px 12px; gap: 10px; }
+  .reader-controls { width: 100%; gap: 8px; justify-content: space-between; }
+  .editor-toolbar button, .text-options summary { padding: 9px; font-size: 11px; }
+  .editor-toolbar .fit-width { font-size: 10px; gap: 4px; }
+  .writing-controls { gap: 8px; width: 100%; }
+  .writing-controls > .tool-group { gap: 5px; flex-wrap: wrap; }
+  .editor-guidance { padding: 9px 12px; gap: 5px; flex-direction: column; align-items: flex-start; }
+  .editor-guidance .editor-hint { font-size: 11px; }
+  .editor-guidance .save-status { margin: 0; font-size: 10px; }
+  .text-options-panel { right: auto; left: 0; }
+}

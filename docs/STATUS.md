@@ -1,0 +1,69 @@
+# Registro de implementação
+
+## Fase 1 — Fundação validada
+
+Código implementado: estrutura Next.js/TypeScript, modelo PostgreSQL/Prisma, API REST, instalação inicial protegida, login sem e-mail, hash de senhas, sessão no servidor, troca obrigatória de senha inicial, recuperação supervisionada, cadastros de cursos/turmas/usuários/matrículas, dados isolados por instituição e professor, navegação por perfil, temas claro/escuro e registros de cadastro.
+
+Não há dados fictícios ou integração simulada: as operações dependem do PostgreSQL configurado. Primeira migração criada/aplicada. TypeScript, build e sete testes de fundação aprovados, incluindo login e criação de curso pelo Chromium, persistência, recuperação e isolamento entre instituições/alunos/professores. A auditoria de dependências da instalação limpa reportou zero vulnerabilidades.
+
+## Fase 2 — Núcleo do editor validado
+
+Segunda migração criada/aplicada: aulas, documentos imutáveis, trabalhos individuais, revisões e histórico de feedback. Implementados upload privado de PDF (3 MB/200 páginas), publicação de aulas, PDF.js com worker local, navegação/zoom, inserção/edição/movimentação/exclusão de texto, fonte/cor, destaque por região, autosave com revisão otimista, rascunho local por usuário/documento/aba, sincronização, conflito explícito, entrega, acompanhamento e correção/reabertura pelo professor, exportação com pdf-lib.
+
+Os originais são armazenados no PostgreSQL, sem URLs públicas. Armazenamento de objetos dedicado ainda será integrado. Módulos são um campo de organização da aula nesta etapa; a entidade própria de módulo será acrescentada quando sua administração for implementada.
+
+Validação: 12 testes aprovados, cobrindo a fundação, PDF real de três páginas, desenho das páginas no canvas, posicionamento após zoom, edição offline e sincronização, recuperação ao reabrir, conteúdo incorporado ao PDF exportado, concorrência com HTTP 409, isolamento de respostas, entrega e correção/reabertura. Teste adicional de transformação verifica páginas com rotações 0/90/180/270 graus e recorte. Build de produção e TypeScript aprovados com as rotas do editor.
+
+Falhas encontradas/corrigidas: criação simultânea do primeiro trabalho individual; sobreposição de renderizações no mesmo canvas; distribuição do PDF.js que exigia APIs ainda ausentes no navegador de teste. A distribuição de compatibilidade e seu worker local são usados agora. Testes de edição e sincronização usam PostgreSQL e Chromium reais.
+
+## Ajuste de usabilidade do editor
+
+Barra de ferramentas fixada no topo durante a rolagem, com instrução contextual e indicador de salvamento sempre visíveis. Controles maiores, modo de escrita destacado, opção de ajustar o PDF à largura, fonte/cor agrupadas e indicação nas caixas de resposta vazias. Navegação entre páginas limpa a seleção anterior.
+
+TypeScript e teste de navegador aprovados. A verificação confere a posição da barra após rolagem e o ajuste de largura em tela de celular. A rodada inicial havia sido interrompida por falta de memória/espaço no ambiente; a validação posterior concluiu com sucesso.
+
+## Fase 3 — Provas e atividades
+
+Implementados modelos/migração, API REST, menu e páginas para criar/editar/publicar provas e atividades por aula. Oito tipos de questão: múltipla escolha, verdadeiro/falso, curta, discursiva, associação, lacunas, arquivo e prática. Pontuação por questão, instruções, prazo em horário do Acre, 1 a 10 tentativas, imagens privadas, duplicação com questões/imagens, rascunho e proteção da definição após início das tentativas.
+
+Aluno: início/retomada de tentativa, autosave, recuperação de rascunho local, conflito de versão explícito, anexos privados, entrega e revisão das próprias respostas. Servidor: correção objetiva determinística, pontuação parcial para associações/lacunas, correção manual, feedback, liberação/ocultação de notas, bloqueio após entrega e validação de prazo/tentativas. Gabaritos ficam restritos ao professor.
+
+Validação: sete testes do módulo aprovados, incluindo criação/publicação pelo professor e resposta/retomada/entrega/liberação de nota pelo navegador. Cobrem também oito tipos, correção parcial, acesso entre alunos/professores, upload privado, concorrência no início, revisão antiga, prazo encerrado, limite de tentativas, correção manual, duplicação com imagens e edição/reordenação de rascunho. Os 12 testes anteriores de fundação/PDF passaram na rodada de regressão. TypeScript e build de produção aprovados, com as novas páginas e API de avaliações.
+
+## Área do aluno — Acesso simplificado
+
+Nova interface exclusiva do aluno, com navegação curta, acessos grandes a apostilas e avaliações, continuação do trabalho em andamento, progresso baseado em entregas, busca por aula/título, filtro por turma e correções reunidas. Navegação inferior no celular, temas claro/escuro, conta e troca de senha acessíveis. O painel de professor/admin permanece separado.
+
+API somente de leitura, restrita ao aluno autenticado, lista os próprios materiais/tentativas e apenas conteúdos publicados. Não retorna arquivos, respostas, anotações, gabaritos ou dados dos colegas. Correções de avaliações só são listadas após a liberação das notas. Atalhos de tentativas validam o vínculo com a avaliação antes de abrir; correções de apostilas ficam visíveis antes do PDF.
+
+TypeScript e build de produção aprovados. Os 20 testes passaram na validação por grupos (7 de avaliações, 12 de fundação/PDF/área do aluno e 1 de exportação), incluindo navegação pelo início até a apostila, pesquisa, continuação, acesso direto às correções de provas, notas liberadas, tema claro/escuro, celular sem rolagem horizontal e proteção de dados/conteúdos não publicados. As verificações usam PostgreSQL e Chromium reais sobre a versão compilada para reduzir o consumo de memória do servidor de desenvolvimento.
+
+O servidor local foi reiniciado na porta 3000 com a versão compilada (`next start`), evitando a compilação durante a navegação neste computador com poucos recursos. Após novas alterações no código, é necessário gerar novo build e reiniciar esse servidor, ou usar `npm run dev` quando houver memória/espaço suficientes.
+
+## Provas e atividades — Formato de formulário
+
+Interface inspirada no Google Forms: coluna central, fundo lilás, cabeçalho destacado, perguntas em cartões, campos de resposta com linha e alternativas de seleção ampla. O aluno acompanha o preenchimento, pode limpar uma seleção, salvar o rascunho e entregar após revisar. A contagem de associação/lacunas só considera a questão preenchida quando todos os itens têm resposta. Mantidos os oito tipos de questão, autosave, entrega e liberação de notas.
+
+No editor do professor, alternativas de múltipla escolha têm campos individuais, adição/remoção e seleção direta do gabarito. A remoção de uma alternativa ajusta o índice da resposta correta. Validação com TypeScript, build e sete testes de avaliações, incluindo criação pelo professor, gabarito após remoção de alternativa, limpeza de seleção, retomada, entrega, correção e celular sem rolagem horizontal.
+
+## Revisão dos erros pelo aluno
+
+Após entrega, correção completa e liberação das notas, cada questão mostra acerto/erro/acerto parcial, pontuação e resposta correta. Associação e lacunas detalham cada item; respostas curtas mostram as respostas aceitas. Questões manuais mostram pontuação e comentário do professor ao lado da resposta original.
+
+O gabarito é enviado somente na consulta da própria tentativa entregue e corrigida, com notas liberadas. Continua oculto na definição pública, nos rascunhos, antes da liberação e para outros alunos. Ao ocultar as notas, novas consultas também deixam de retornar o gabarito. Build aprovado e oito testes de avaliações cobrem esses controles e a revisão no navegador, incluindo erros, acertos parciais e feedback manual no celular.
+
+## Pendências gerais
+
+- Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.
+- Edição/arquivamento dos cadastros, desativação de usuários e remoção de matrículas.
+- Importação CSV e convites.
+- Ampliar o editor: desenho livre, camada de seleção do texto original, campos AcroForm, fontes Unicode completas e controle visual de tamanho das caixas/destaques.
+- Integrar Supabase Storage ou equivalente para originais, com quotas e backups dos objetos.
+- Fase 4: relatórios PDF/Excel, médias por turma/avaliação e evolução dos indicadores de desempenho.
+- Revisão operacional de segurança/LGPD, backups e implantação.
+
+## Ocorrências do ambiente
+
+A instalação inicial foi interrompida por falta de espaço no disco C:. Após liberação de espaço, as dependências foram reinstaladas com lockfile, o Docker Desktop iniciou e o PostgreSQL local ficou saudável. Um novo esgotamento de memória interrompeu uma rodada de testes; as execuções seguintes usaram limite de heap menor e concluíram. O espaço livre permanece reduzido; nenhuma limpeza de arquivos pessoais foi realizada.
+
+Durante a Fase 3 o disco voltou a esgotar. A limpeza automática do cache de testes foi bloqueada pela política do ambiente. Foi possível recuperar espaço com compactação NTFS apenas em `node_modules`, sem excluir arquivos. Os testes passaram a desabilitar o cache persistente de compilação para reduzir gravações. O servidor local foi pausado durante a validação para liberar memória.

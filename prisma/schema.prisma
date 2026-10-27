@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+model Institution {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  createdAt DateTime @default(now())
+  users User[]
+  courses Course[]
+}
+model User {
+  id String @id @default(cuid())
+  institutionId String
+  institution Institution @relation(fields: [institutionId], references: [id])
+  name String
+  username String
+  passwordHash String
+  role Role
+  mustChangePassword Boolean @default(true)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  classes Class[]
+  enrollments Enrollment[]
+  works PdfWork[]
+  attempts AssessmentAttempt[]
+  @@unique([institutionId, username])
+  @@index([institutionId, role])
+}
+model Session {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+model Course {
+  id String @id @default(cuid())
+  institutionId String
+  institution Institution @relation(fields: [institutionId], references: [id])
+  name String
+  description String @default("")
+  createdAt DateTime @default(now())
+  classes Class[]
+  @@index([institutionId])
+}
+model Class {
+  id String @id @default(cuid())
+  name String
+  courseId String
+  course Course @relation(fields: [courseId], references: [id])
+  teacherId String
+  teacher User @relation(fields: [teacherId], references: [id])
+  createdAt DateTime @default(now())
+  enrollments Enrollment[]
+  lessons Lesson[]
+  @@index([teacherId])
+}
+model Lesson {
+  id String @id @default(cuid())
+  classId String
+  class Class @relation(fields: [classId], references: [id])
+  module String @default("Geral")
+  title String
+  description String @default("")
+  scheduledAt DateTime?
+  published Boolean @default(false)
+  createdAt DateTime @default(now())
+  documents PdfDocument[]
+  assessments Assessment[]
+  @@index([classId, published])
+}
+model PdfDocument {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+  title String
+  content Bytes
+  sha256 String
+  pageCount Int
+  createdAt DateTime @default(now())
+  works PdfWork[]
+  @@index([lessonId])
+}
+model PdfWork {
+  id String @id @default(cuid())
+  documentId String
+  document PdfDocument @relation(fields: [documentId], references: [id])
+  studentId String
+  student User @relation(fields: [studentId], references: [id])
+  annotations Json @default("[]")
+  version Int @default(0)
+  submittedAt DateTime?
+  updatedAt DateTime @updatedAt
+  revisions PdfRevision[]
+  feedback PdfFeedback[]
+  @@unique([documentId, studentId])
+  @@index([studentId])
+}
+model PdfRevision {
+  id String @id @default(cuid())
+  workId String
+  work PdfWork @relation(fields: [workId], references: [id])
+  version Int
+  annotations Json
+  createdAt DateTime @default(now())
+  @@unique([workId, version])
+}
+model PdfFeedback {
+  id String @id @default(cuid())
+  workId String
+  work PdfWork @relation(fields: [workId], references: [id])
+  teacherId String
+  comment String
+  grade Float?
+  createdAt DateTime @default(now())
+  @@index([workId, createdAt])
+}
+model Enrollment {
+  id String @id @default(cuid())
+  classId String
+  class Class @relation(fields: [classId], references: [id])
+  studentId String
+  student User @relation(fields: [studentId], references: [id])
+  createdAt DateTime @default(now())
+  @@unique([classId, studentId])
+  @@index([studentId])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  institutionId String
+  actorId String
+  action String
+  resourceId String
+  createdAt DateTime @default(now())
+  @@index([institutionId, createdAt])
+}
+model LoginAttempt {
+  key String @id
+  count Int @default(1)
+  resetAt DateTime
+}
+
+model Assessment {
+  id String @id @default(cuid())
+  lessonId String
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+  kind String
+  title String
+  instructions String @default("")
+  published Boolean @default(false)
+  gradesReleased Boolean @default(false)
+  dueAt DateTime?
+  maxAttempts Int @default(1)
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  questions AssessmentQuestion[]
+  attempts AssessmentAttempt[]
+  files AssessmentFile[]
+  @@index([lessonId, published])
+}
+model AssessmentQuestion {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  position Int
+  type String
+  prompt String
+  points Float
+  options String[] @default([])
+  matches String[] @default([])
+  answerKey Json @default("null")
+  imageId String?
+  files AssessmentFile[]
+  @@unique([assessmentId, position])
+}
+model AssessmentAttempt {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  studentId String
+  student User @relation(fields: [studentId], references: [id])
+  number Int
+  answers Json @default("{}")
+  version Int @default(0)
+  autoScores Json @default("{}")
+  review Json @default("{}")
+  feedback String @default("")
+  submittedAt DateTime?
+  gradedAt DateTime?
+  reviewedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files AssessmentFile[]
+  @@unique([assessmentId, studentId, number])
+  @@index([studentId, updatedAt])
+  @@index([assessmentId, submittedAt])
+}
+model AssessmentFile {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questionId String
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptId String?
+  attempt AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  name String
+  mimeType String
+  content Bytes
+  createdAt DateTime @default(now())
+  @@unique([questionId, attemptId])
+  @@index([assessmentId])
+}

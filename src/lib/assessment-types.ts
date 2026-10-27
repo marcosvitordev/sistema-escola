@@ -1,0 +1,10 @@
+import type { Answer, Answers, QuestionDefinition, QuestionType } from './assessments';
+export type QuestionView = { id: string; position: number; type: QuestionType; prompt: string; points: number; options: string[]; matches: string[]; imageId: string | null; answerKey?: QuestionDefinition['answerKey'] };
+export type AssessmentView = { id: string; lessonId: string; kind: 'TEST' | 'ACTIVITY'; title: string; instructions: string; published: boolean; gradesReleased: boolean; dueAt: string | null; maxAttempts: number; revision: number; questions: QuestionView[]; lesson: { id: string; title: string; published: boolean; classId: string } };
+export type AttemptSummary = { id: string; studentId: string; number: number; submittedAt: string | null; gradedAt: string | null; updatedAt: string; student: { name: string } };
+export type AttemptFile = { id: string; questionId: string; name: string; mimeType: string };
+export type AttemptView = { id: string; number: number; answers: Answers; version: number; submittedAt: string | null; gradedAt: string | null; updatedAt: string; student: { name: string }; files: AttemptFile[]; grade: number | null; maxPoints: number; autoScores?: Record<string, number>; review?: Record<string, { points: number; feedback: string }>; feedback?: string };
+export type AssessmentResponse = { assessment: AssessmentView; attempts: AttemptSummary[]; students: { student: { id: string; name: string } }[]; manage: boolean };
+export type AttemptResponse = { assessment: AssessmentView; attempt: AttemptView; manage: boolean };
+export type LessonChoice = { id: string; title: string; published: boolean };
+export type { Answer, Answers };

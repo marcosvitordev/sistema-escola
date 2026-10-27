@@ -1,0 +1,275 @@
+import { test, expect, request as apiRequest, type APIRequestContext } from '@playwright/test';
+import { PrismaClient } from '../src/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { hash } from 'bcryptjs';
+import { PDFArray, PDFDocument, PDFRawStream, StandardFonts, decodePDFRawStream, degrees } from 'pdf-lib';
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: 'escola_test' }) });
+const baseURL = 'http://localhost:3001';
+const password = 'SenhaIndividual123!';
+let admin: APIRequestContext;
+let teacher: APIRequestContext;
+let student: APIRequestContext;
+let classId: string;
+let studentId: string;
+let documentId: string;
+
+test.describe.configure({ mode: 'serial' });
+test.beforeAll(async () => {
+  // This test schema is disposable; never truncate the development schema.
+  if (new URL(process.env.DATABASE_URL!).searchParams.get('schema') !== 'escola_test') throw new Error('Banco de teste não isolado.');
+  await db.$executeRawUnsafe('TRUNCATE TABLE escola_test."Session", escola_test."Enrollment", escola_test."Class", escola_test."Course", escola_test."User", escola_test."Institution", escola_test."AuditLog", escola_test."LoginAttempt" CASCADE');
+  admin = await apiRequest.newContext({ baseURL });
+  teacher = await apiRequest.newContext({ baseURL });
+  student = await apiRequest.newContext({ baseURL });
+});
+test.afterAll(async () => { await Promise.all([admin?.dispose(), teacher?.dispose(), student?.dispose()]); await db.$disconnect(); });
+
+test('instalação protegida, cadastro inicial e bloqueio de reinstalação', async () => {
+  const data = { institution: 'Escola de teste', slug: 'teste', name: 'Administrador Teste', username: 'admin', password, role: 'ADMIN', token: process.env.BOOTSTRAP_TOKEN };
+  expect((await admin.post('/api/setup', { data: { ...data, token: 'codigo-incorreto-com-mais-de-32-caracteres' } })).status()).toBe(403);
+  expect((await admin.post('/api/setup', { data })).status()).toBe(201);
+  expect((await admin.post('/api/setup', { data })).status()).toBe(409);
+  expect((await admin.get('/api/overview')).status()).toBe(200);
+});
+test('professor cria curso e turma após trocar a senha inicial', async () => {
+  expect((await admin.post('/api/users', { data: { name: 'Professor Teste', username: 'professor', password, role: 'TEACHER' } })).status()).toBe(201);
+  expect((await teacher.post('/api/login', { data: { institution: 'teste', username: 'professor', password } })).status()).toBe(200);
+  expect((await teacher.get('/api/overview')).status()).toBe(403);
+  expect((await teacher.post('/api/password', { data: { current: password, password: `${password}Nova` } })).status()).toBe(200);
+  const overview = await (await teacher.get('/api/overview')).json();
+  const course = await teacher.post('/api/courses', { data: { name: 'Informática Básica', description: 'Fundamentos de informática' } });
+  expect(course.status()).toBe(201);
+  const classroom = await teacher.post('/api/classes', { data: { name: 'Manhã — 2026', courseId: (await course.json()).id, teacherId: overview.users[0].id } });
+  expect(classroom.status()).toBe(201);
+  classId = (await classroom.json()).id;
+});
+test('alunos individuais, matrícula, troca de senha e persistência de sessão', async () => {
+  for (const username of ['aluno-um', 'aluno-dois', 'aluno-tres']) {
+    const result = await teacher.post('/api/users', { data: { name: `Estudante ${username}`, username, password, role: 'STUDENT', classId } });
+    expect(result.status()).toBe(201);
+    if (username === 'aluno-um') studentId = (await result.json()).id;
+  }
+  expect((await student.post('/api/login', { data: { institution: 'teste', username: 'aluno-um', password } })).status()).toBe(200);
+  expect((await student.get('/api/overview')).status()).toBe(403);
+  expect((await student.post('/api/password', { data: { current: password, password: `${password}Aluno` } })).status()).toBe(200);
+  const result = await (await student.get('/api/overview')).json();
+  expect(result.classes).toHaveLength(1);
+  expect(result.classes[0].enrollments).toHaveLength(1);
+  expect(result.classes[0].enrollments[0].student.id).toBe(studentId);
+  expect(JSON.stringify(result)).not.toContain('aluno-dois');
+  expect(JSON.stringify(result)).not.toContain('passwordHash');
+  const reopened = await apiRequest.newContext({ baseURL, storageState: await student.storageState() });
+  expect((await reopened.get('/api/overview')).status()).toBe(200);
+  await reopened.dispose();
+  expect((await student.post('/api/courses', { data: { name: 'Não permitido' } })).status()).toBe(403);
+});
+test('professor não consulta outras turmas nem eleva privilégios', async () => {
+  const adminData = await (await admin.get('/api/overview')).json();
+  const adminId = adminData.users.find((u: { username: string }) => u.username === 'admin').id;
+  const privateClass = await admin.post('/api/classes', { data: { name: 'Turma de outro responsável', courseId: adminData.courses[0].id, teacherId: adminId } });
+  const privateId = (await privateClass.json()).id;
+  const teacherData = await (await teacher.get('/api/overview')).json();
+  expect(teacherData.classes.map((c: { id: string }) => c.id)).not.toContain(privateId);
+  expect((await teacher.post('/api/enrollments', { data: { classId: privateId, studentId } })).status()).toBe(403);
+  expect((await teacher.post('/api/users', { data: { name: 'Admin indevido', username: 'intruso', password, role: 'ADMIN', classId } })).status()).toBe(403);
+});
+test('isolamento entre instituições em leituras e vínculos', async () => {
+  const other = await db.institution.create({ data: { name: 'Outra instituição', slug: 'outra', users: { create: { name: 'Outro professor', username: 'outro', passwordHash: await hash(password, 12), role: 'TEACHER', mustChangePassword: false } }, courses: { create: { name: 'Curso privado' } } }, include: { courses: true } });
+  const overview = await (await admin.get('/api/overview')).json();
+  expect(JSON.stringify(overview)).not.toContain('Curso privado');
+  const teacherId = overview.users.find((u: { username: string }) => u.username === 'professor').id;
+  expect((await admin.post('/api/classes', { data: { name: 'Vínculo indevido', courseId: other.courses[0].id, teacherId } })).status()).toBe(403);
+});
+test('validação, origem e recuperação revogam acesso anterior', async () => {
+  expect((await teacher.post('/api/courses', { data: { name: '' } })).status()).toBe(400);
+  expect((await teacher.post('/api/courses', { data: { name: 'Invasão por origem' }, headers: { origin: 'https://outro.example' } })).status()).toBe(403);
+  expect((await teacher.post('/api/reset-password', { data: { userId: studentId, password: 'NovaTemporaria123!' } })).status()).toBe(201);
+  expect((await student.get('/api/overview')).status()).toBe(401);
+  expect((await student.post('/api/login', { data: { institution: 'teste', username: 'aluno-um', password: `${password}Aluno` } })).status()).toBe(401);
+  expect((await student.post('/api/login', { data: { institution: 'teste', username: 'aluno-um', password: 'NovaTemporaria123!' } })).status()).toBe(200);
+  expect((await student.get('/api/overview')).status()).toBe(403);
+});
+test('interface conecta o login e a criação de curso ao banco real', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Código da instituição').fill('teste');
+  await page.getByLabel('Usuário ou matrícula').fill('admin');
+  await page.getByLabel('Senha', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Entrar na plataforma' }).click();
+  await expect(page.getByRole('heading', { name: 'Olá, Administrador!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Criar um curso', exact: true }).click();
+  await page.getByLabel('Nome do curso').fill('Curso criado pelo navegador');
+  await page.getByLabel('Descrição', { exact: true }).fill('Persistência real');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Cadastro salvo');
+  await page.reload();
+  await page.getByRole('button', { name: 'Cursos', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Curso criado pelo navegador' })).toBeVisible();
+  await page.getByRole('button', { name: 'Usar tema escuro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('professor publica PDF real de três páginas e protege rascunhos', async () => {
+  await student.post('/api/password', { data: { current: 'NovaTemporaria123!', password: 'SenhaAlunoDefinitiva123!' } });
+  const lesson = await teacher.post('/api/learning/lessons', { data: { classId, title: 'Aula 03 — Sistemas Operacionais', module: 'Sistemas Operacionais', description: 'Responda nas três páginas.' } });
+  expect(lesson.status()).toBe(201);
+  const lessonId = (await lesson.json()).id;
+  const invalid = await teacher.post(`/api/learning/lessons/${lessonId}/documents`, { multipart: { file: { name: 'arquivo.pdf', mimeType: 'application/pdf', buffer: Buffer.from('nao e PDF') } } });
+  expect(invalid.status()).toBe(400);
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  for (let i = 1; i <= 3; i++) { const page = pdf.addPage([612, 792]); page.drawText(`Aula 03 - Questao ${i}: o que e um sistema operacional?`, { x: 40, y: 700, size: 14, font }); }
+  const upload = await teacher.post(`/api/learning/lessons/${lessonId}/documents`, { multipart: { file: { name: 'Aula 03.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await pdf.save()) } } });
+  expect(upload.status()).toBe(201); documentId = (await upload.json()).id;
+  const privateHome = await (await student.get('/api/student/home')).json();
+  expect(privateHome.materials.some((item: { id: string }) => item.id === documentId)).toBe(false);
+  expect((await student.get(`/api/learning/documents/${documentId}/file`)).status()).toBe(404);
+  expect((await teacher.post(`/api/learning/lessons/${lessonId}/publish`, { data: { published: true } })).status()).toBe(200);
+  expect((await student.get(`/api/learning/documents/${documentId}/file`)).status()).toBe(200);
+  const listing = await (await student.get(`/api/learning/classes/${classId}`)).json();
+  expect(listing.lessons[0].documents[0].id).toBe(documentId);
+});
+test('aluno escreve em três páginas, recupera autosave, sincroniza offline e exporta', async ({ page, context }) => {
+  const renderErrors: string[] = [];
+  page.on('console', message => { if (message.type() === 'error' && message.text().startsWith('PDF rendering')) renderErrors.push(message.text()); });
+  await page.goto('/');
+  await page.getByLabel('Código da instituição').fill('teste');
+  await page.getByLabel('Usuário ou matrícula').fill('aluno-um');
+  await page.getByLabel('Senha', { exact: true }).fill('SenhaAlunoDefinitiva123!');
+  await page.getByRole('button', { name: 'Entrar na plataforma' }).click();
+  await expect(page.getByRole('heading', { name: 'Olá, Estudante!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Apostilas', exact: true }).click();
+  await page.getByRole('link', { name: 'Abrir apostila: Aula 03.pdf', exact: true }).click();
+  await expect(page.locator('canvas')).toBeVisible();
+  for (let i = 1; i <= 3; i++) {
+    await page.getByLabel('Selecionar página').selectOption(String(i));
+    await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
+    await page.getByTestId('pdf-page').click({ position: { x: 80, y: 200 } });
+    await page.getByLabel(`Resposta na página ${i}`).fill(`Minha resposta na pagina ${i}`);
+    await expect(page.getByRole('status')).toHaveText('Todas as alterações salvas');
+  }
+  await page.reload();
+  await page.getByLabel('Selecionar página').selectOption('3');
+  await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Minha resposta na pagina 3');
+  const before = await page.locator('.pdf-note').getAttribute('style');
+  await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('1.5');
+  expect(await page.locator('.pdf-note').getAttribute('style')).toBe(before);
+  await context.setOffline(true);
+  await page.getByLabel('Resposta na página 3').fill('Rascunho offline recuperado');
+  await expect(page.getByRole('status')).toContainText('rascunho salvo', { timeout: 15_000 });
+  await context.setOffline(false);
+  await expect(page.getByRole('status')).toHaveText('Todas as alterações salvas', { timeout: 15_000 });
+  await page.reload();
+  await page.getByLabel('Selecionar página').selectOption('3');
+  await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Rascunho offline recuperado');
+  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
+  const inkPixels = await page.locator('canvas').evaluate(canvas => {
+    const pixels = (canvas as HTMLCanvasElement).getContext('2d')!.getImageData(0, 0, (canvas as HTMLCanvasElement).width, (canvas as HTMLCanvasElement).height).data;
+    let count = 0; for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 100 && pixels[i + 3] > 0) count++;
+    return count;
+  });
+  expect(inkPixels).toBeGreaterThan(100);
+  expect(renderErrors).toEqual([]);
+  await context.setOffline(true);
+  await page.getByLabel('Resposta na página 3').fill('Rascunho preservado apos fechar a aba');
+  await expect(page.getByRole('status')).toContainText('rascunho salvo', { timeout: 15_000 });
+  await page.close();
+  await context.setOffline(false);
+  page = await context.newPage();
+  await page.goto(`/apostilas/${documentId}`);
+  await page.getByLabel('Selecionar página').selectOption('3');
+  await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Rascunho preservado apos fechar a aba');
+  await expect(page.getByRole('status')).toHaveText('Todas as alterações salvas');
+  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.locator('.editor-controls').evaluate(element => element.getBoundingClientRect().top)).toBe(0);
+  await expect(page.getByRole('button', { name: 'Escrever resposta' })).toHaveAttribute('aria-pressed', 'true');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Ajustar à largura' }).click();
+  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
+  expect((await page.getByTestId('pdf-page').boundingBox())!.width).toBeLessThanOrEqual(360);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: 'test-results/editor-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('1');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: 'test-results/editor-validado.png', fullPage: true });
+  const exported = await student.get(`/api/learning/documents/${documentId}/export`);
+  expect(exported.status()).toBe(200);
+  const pdf = await PDFDocument.load(await exported.body());
+  expect(pdf.getPageCount()).toBe(3);
+  const contents = pdf.getPage(2).node.Contents();
+  expect(contents).toBeInstanceOf(PDFArray);
+  let decoded = '';
+  for (const entry of (contents as PDFArray).asArray()) {
+    const stream = pdf.context.lookup(entry);
+    if (stream instanceof PDFRawStream) decoded += Buffer.from(decodePDFRawStream(stream).decode()).toString('latin1');
+  }
+  expect(decoded).toContain(Buffer.from('Rascunho preservado apos fechar a aba').toString('hex').toUpperCase());
+});
+test('salvamento concorrente detecta revisão antiga e isola respostas', async () => {
+  const url = `/api/learning/documents/${documentId}/work`;
+  const state = await (await student.get(url)).json();
+  expect(state.work.annotations).toHaveLength(3);
+  const data = { version: state.work.version, annotations: state.work.annotations };
+  const [one, two] = await Promise.all([student.put(url, { data }), student.put(url, { data })]);
+  expect([one.status(), two.status()].sort()).toEqual([200, 409]);
+  const second = await apiRequest.newContext({ baseURL });
+  await second.post('/api/login', { data: { institution: 'teste', username: 'aluno-dois', password } });
+  await second.post('/api/password', { data: { current: password, password: `${password}Dois` } });
+  const other = await (await second.get(url)).json();
+  expect(other.work.annotations).toEqual([]);
+  expect((await second.get(`${url}?student=${studentId}`)).status()).toBe(403);
+  expect((await second.get(`/api/learning/documents/${documentId}/export?student=${studentId}`)).status()).toBe(403);
+  await second.dispose();
+});
+test('entrega bloqueia edição e professor corrige e reabre com histórico', async () => {
+  const base = `/api/learning/documents/${documentId}`;
+  const state = await (await student.get(`${base}/work`)).json();
+  expect((await student.post(`${base}/submit`, { data: { version: state.work.version } })).status()).toBe(200);
+  expect((await student.put(`${base}/work`, { data: { version: state.work.version + 1, annotations: [] } })).status()).toBe(409);
+  const monitor = await (await teacher.get(`${base}/monitor`)).json();
+  expect(monitor.students.find((r: { student: { id: string } }) => r.student.id === studentId).student.works[0].submittedAt).toBeTruthy();
+  expect((await teacher.post(`${base}/feedback?student=${studentId}`, { data: { comment: 'Bom trabalho. Revise a terceira resposta.', grade: 8.5, reopen: true } })).status()).toBe(201);
+  const reopened = await (await student.get(`${base}/work`)).json();
+  expect(reopened.readOnly).toBe(false);
+  expect(reopened.work.feedback[0].grade).toBe(8.5);
+  expect(reopened.work.annotations).toHaveLength(3);
+});
+
+test('início do aluno organiza materiais e abre correções no computador e celular', async ({ page }) => {
+  expect((await teacher.get('/api/student/home')).status()).toBe(403);
+  const home = await (await student.get('/api/student/home')).json();
+  expect(home.materials).toHaveLength(1);
+  expect(home.materials[0].work.feedback.grade).toBe(8.5);
+  expect(JSON.stringify(home)).not.toMatch(/passwordHash|annotations|answerKey|aluno-dois/);
+  await page.goto('/');
+  await page.getByLabel('Código da instituição').fill('teste');
+  await page.getByLabel('Usuário ou matrícula').fill('aluno-um');
+  await page.getByLabel('Senha', { exact: true }).fill('SenhaAlunoDefinitiva123!');
+  await page.getByRole('button', { name: 'Entrar na plataforma' }).click();
+  await expect(page.getByRole('heading', { name: 'Olá, Estudante!' })).toBeVisible();
+  await expect(page.getByText('CONTINUE DE ONDE PAROU', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Continuar apostila', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/aluno-inicio.png', fullPage: true });
+  await page.getByRole('button', { name: 'Apostilas', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Buscar apostila ou aula' }).fill('Não existe');
+  await expect(page.getByRole('heading', { name: 'Não encontramos essa apostila' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Buscar apostila ou aula' }).fill('Aula 03');
+  await expect(page.getByRole('heading', { name: 'Aula 03.pdf' })).toBeVisible();
+  await page.getByText('Minha conta', { exact: true }).click();
+  await page.getByRole('button', { name: 'Usar tema escuro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: 'Usar tema claro' }).click();
+  await page.getByText('Minha conta', { exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await expect(page.getByRole('button', { name: 'Apostilas', exact: true })).toBeInViewport();
+  await page.screenshot({ path: 'test-results/aluno-celular.png', fullPage: true });
+  await page.getByRole('button', { name: /^Correções/ }).click();
+  await page.getByRole('link', { name: 'Ver correção: Aula 03.pdf', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/apostilas/${documentId}#correcao`));
+  await expect(page.locator('#correcao')).toBeVisible();
+  await expect(page.getByText('Nota: 8,5 / 10', { exact: true })).toBeVisible();
+});
