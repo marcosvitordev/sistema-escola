@@ -59,6 +59,8 @@ O administrador pode cadastrar alunos sem turma e matriculá-los depois. Profess
 
 ## Provas e atividades
 
+Use **Importar Google Forms** para trazer um formulário seu por arquivo JSON, com exportador e passo a passo na própria tela. A prévia indica adaptações e perguntas sem gabarito. Revise e salve como rascunho antes de publicar. Veja [como importar e quais tipos são compatíveis](docs/IMPORTAR-GOOGLE-FORMS.md).
+
 No menu **Provas e atividades**, escolha uma turma e clique em **Nova prova ou atividade**. A turma precisa ter pelo menos uma aula cadastrada. Selecione o formato, a aula, o título, as instruções, o prazo opcional (horário do Acre) e o número de tentativas (1 a 10).
 
 Tipos disponíveis: múltipla escolha, verdadeiro/falso, resposta curta, discursiva, associação de colunas, lacunas, envio de arquivo e atividade prática. Cada questão tem pontuação própria e pode receber uma imagem PNG/JPEG depois de salvar o rascunho. Nas lacunas, use `[___]` no enunciado. Questões curtas aceitam uma lista de respostas corretas; a comparação ignora maiúsculas/espaços extras e preserva a acentuação.
@@ -80,6 +82,7 @@ Anexos privados ficam no PostgreSQL, com validação de tamanho e assinatura do 
 - `npx playwright install chromium`: instala o navegador para os testes de interface.
 - `npm test`: aplica migrações no schema `escola_test` e executa os testes de integração e navegador na porta 3001. Esse schema é apagado pelos testes; use um banco local/de teste. O schema de uso `escola` é preservado.
 - `npm test -- tests/assessments.spec.ts`: executa apenas os testes de provas e atividades.
+- `node --import tsx --test tests/google-forms-import.unit.mjs`: testa o conversor e o exportador de Google Forms sem acessar o banco ou uma conta Google.
 - Para testar a versão compilada no PowerShell: execute `npm run build`, defina `$env:PLAYWRIGHT_USE_BUILD='1'` e execute `npm test`. O servidor de teste usará o build existente com o schema isolado.
 - `npm run db:dev -- --name descricao`: cria migração de desenvolvimento.
 - `npm run db:migrate`: aplica migrações versionadas.

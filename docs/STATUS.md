@@ -78,6 +78,14 @@ Professor responsável e administrador podem renomear PDFs existentes em Turma �
 
 TypeScript e build aprovados. Teste no HTTPS público pelo navegador conferiu cancelar, nome inválido, persistência após reload, autorização de administrador/professor responsável, bloqueio de aluno/outro professor, conteúdo original idêntico, trabalho e respostas intactos, listagem do aluno e nomes dos downloads. Layout móvel inspecionado sem rolagem horizontal. Registros temporários removidos após a validação.
 
+## Importação de Google Forms
+
+Botão Importar Google Forms nas avaliações da turma, com exportador Apps Script disponível na tela e por download. Importa arquivo JSON do exportador ou da estrutura oficial da API Forms. Prévia sem gravação, avisos de adaptação, seleção da aula e revisão no editor existente antes de salvar como rascunho. Sem OAuth/credenciais Google no servidor e sem importação direta por link.
+
+Múltipla escolha/lista e respostas curtas compatíveis preservam os gabaritos disponíveis; alternativas sem gabarito ficam sem seleção e precisam ser revisadas. Grades viram perguntas por linha; marcação múltipla/outros tipos são adaptados para correção manual com aviso. Imagens, lógicas de seção e configurações não compatíveis são sinalizadas. Nenhuma resposta de aluno é importada. IDs novos, validação de limites, autorização por turma e rascunho privado pelas APIs existentes.
+
+Sete testes do conversor/exportador simulados aprovados, oito testes de regressão das avaliações aprovados e builds local/Linux aprovados. Fluxo público no Chromium validou exportador disponível, arquivo inválido, prévia sem gravação, permissões, atualização da lista de aulas ao voltar à seção, gabarito ausente sem seleção automática (inclusive após remover alternativa), revisão, salvamento privado e celular sem rolagem horizontal. O exportador foi validado por simulação e documentação oficial, sem execução em conta Google real. Registros temporários removidos. Instruções e limites em `docs/IMPORTAR-GOOGLE-FORMS.md`.
+
 ## Pendências gerais
 
 - Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.

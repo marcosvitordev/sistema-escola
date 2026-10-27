@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { allowedRequestOrigin } from '@/lib/request-origin';
+import { GoogleFormsImportError, importGoogleForm } from '@/lib/google-forms-import';
 import { currentUser } from '@/lib/auth';
 import { Prisma } from '@/generated/prisma/client';
 import { assessmentSchema, answersSchema, automaticScores, manualQuestion, validateAnswers, type QuestionDefinition, type Answers } from '@/lib/assessments';
@@ -49,6 +50,13 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const classAccess: Prisma.ClassWhereInput = { course: { institutionId: user.institutionId }, ...(user.role === 'TEACHER' ? { teacherId: user.id } : !manage ? { enrollments: { some: { studentId: user.id } } } : {}) };
     const access: Prisma.AssessmentWhereInput = { lesson: { class: classAccess, ...(!manage ? { published: true } : {}) }, ...(!manage ? { published: true } : {}) };
     const audit = (tx: Prisma.TransactionClient, event: string, resourceId: string) => tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: event, resourceId } });
+
+    if (resource === 'classes' && id && action === 'import' && req.method === 'POST') {
+      if (!manage) throw new RequestError('Somente professores e administradores podem importar avaliações.', 403);
+      if (!await db.class.findFirst({ where: { id, ...classAccess }, select: { id: true } })) throw new RequestError('Turma não encontrada.', 404);
+      const data = z.object({ source: z.unknown() }).parse(JSON.parse((await readBytes(req, 5_100_000)).toString('utf8')));
+      return json(importGoogleForm(data.source));
+    }
 
     if (resource === 'classes' && id && req.method === 'GET') {
       const classroom = await db.class.findFirst({ where: { id, ...classAccess }, select: { id: true, name: true } });
@@ -225,6 +233,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     }
     throw new RequestError('Operação não permitida.', 403);
   } catch (error) {
+    if (error instanceof GoogleFormsImportError) return json({ error: error.message }, 400);
     if (error instanceof RequestError) return json({ error: error.message }, error.status);
     if (error instanceof z.ZodError) return json({ error: error.issues[0]?.message ?? 'Confira os campos.' }, 400);
     if (error instanceof SyntaxError) return json({ error: 'Dados inválidos.' }, 400);
