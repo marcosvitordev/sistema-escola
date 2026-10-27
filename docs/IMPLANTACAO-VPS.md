@@ -2,7 +2,7 @@
 
 Endereço público: https://191.252.155.205 (sem domínio).
 
-Após a validação da implantação, o usuário solicitou e confirmou a limpeza dos dados. Foi criado um backup antes da operação. A VPS mantém apenas a instituição `ise` e a conta `admin`, com senha e configurações preservadas; os demais usuários, cursos, turmas, aulas, apostilas, avaliações e respostas foram removidos em uma transação. O banco local não foi alterado. Acesso HTTPS conferido após a limpeza.
+Após a validação da implantação, o usuário solicitou e confirmou a limpeza dos dados. Foi criado um backup antes da operação. Naquela limpeza foram preservadas a instituição `ise` e a conta `admin`, com senha e configurações; os demais usuários, cursos, turmas, aulas, apostilas, avaliações e respostas foram removidos em uma transação. O banco local não foi alterado. Novos cadastros realizados pelo usuário após essa limpeza são preservados nas atualizações.
 
 ## Serviços
 
@@ -58,3 +58,7 @@ Build Linux e migrações aprovados. Renovação do certificado validada com `ce
 Uma instituição temporária foi usada para testar pelo Chromium real: login administrativo e do aluno via HTTPS com cookie Secure/HttpOnly, bloqueio de origem externa nas três APIs de escrita, cadastro/matrícula, publicação e renderização de PDF, edição com autosave e retomada, exportação, entrega da avaliação e gabarito oculto até a liberação. Após a liberação, o aluno visualizou o erro e a resposta correta. Layout de celular e bloqueio de arquivo privado sem autenticação também conferidos. Os registros temporários foram removidos ao terminar.
 
 Atualização do limite de upload publicada: apostilas, imagens e anexos de respostas aceitam arquivos de exatamente 5.000.000 bytes; arquivos com 5.000.001 bytes foram rejeitados com HTTP 413 no endereço público. Os testes também conferiram a recuperação integral de PDF e anexo no limite. Dados temporários removidos após a validação, mantendo a plataforma limpa.
+
+Senhas de alunos com 4 caracteres validadas pelo navegador em cadastro, primeiro acesso, troca pessoal, redefinição e novo login. Senhas de 3 caracteres foram recusadas. Professores e administradores continuam exigindo 10, inclusive quando o corpo da requisição tenta informar outro perfil. Sessões antigas são revogadas na redefinição e a troca obrigatória permanece.
+
+A janela Detalhes da turma foi ampliada e dividida em Resumo, Alunos, Aulas e apostilas, Provas e atividades. Testes no endereço público conferiram navegação por teclado, busca, matrícula, cadastro direto de aluno com senha de 4 caracteres, manutenção de rascunhos ao trocar de seção, aula/PDF/publicação e criação de avaliação na seção da turma. Layout desktop e celular inspecionados; sem rolagem horizontal no celular. Somente os registros da instituição temporária de validação são removidos ao concluir.

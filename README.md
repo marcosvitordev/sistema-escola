@@ -29,6 +29,10 @@ Se utilizar um servidor PostgreSQL existente, configure `DATABASE_URL` e omita o
 
 Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pessoal e na redefinição pelo professor/administrador. Professores e administradores continuam com mínimo de **10 caracteres**. A troca obrigatória no primeiro acesso e após redefinição continua ativa.
 
+## Detalhes da turma
+
+Ao abrir uma turma no painel de gestão, use as seções **Resumo**, **Alunos**, **Aulas e apostilas** e **Provas e atividades**. O resumo reúne os acessos principais. Em Alunos, é possível buscar, cadastrar um novo aluno diretamente na turma ou matricular alguém já cadastrado. As aulas têm busca por título/módulo, apostilas separadas e indicação de rascunho/publicação. Avaliações podem ser criadas e consultadas na própria seção. Os formulários em andamento permanecem ao trocar de seção na mesma janela.
+
 ## Área simplificada do aluno
 
 O aluno tem um início próprio, separado do painel de gestão. Os acessos principais são **Apostilas**, **Provas e atividades** e **Minhas correções**. No celular, ficam em uma barra de navegação na parte inferior da tela, com botões grandes e nomes curtos.

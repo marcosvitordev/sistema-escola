@@ -58,6 +58,14 @@ Plataforma publicada em https://191.252.155.205, com certificado público pelo I
 
 Backup diário com retenção de 14 dias na própria VPS, restauração validada em banco separado. Fluxo de navegador real aprovado no endereço público: login, cookie seguro, PDF/upload/autosave/exportação, avaliação/entrega/revisão dos erros e proteção de dados. Registros de validação removidos. Origem pública configurável por `APP_ORIGIN` corrige o uso atrás do proxy sem aceitar origens externas. Consulte `docs/IMPLANTACAO-VPS.md` para operação e limites.
 
+## Organização dos detalhes da turma e senhas dos alunos
+
+Senhas de alunos aceitam a partir de quatro caracteres no cadastro, primeiro acesso, troca pessoal e redefinição. Professores e administradores mantêm mínimo de dez; o servidor consulta o perfil real do usuário na troca/redefinição. Interface e regras de instalação inicial compatíveis, mantendo hash bcrypt, limite UTF-8, revogação de sessões e troca obrigatória de senha temporária.
+
+Janela da turma ampliada, com seções Resumo, Alunos, Aulas e apostilas e Provas e atividades. Cadastro e matrícula diretamente na turma, busca de alunos e aulas, cartões de apostilas e estado de publicação legíveis. Avaliações integradas na própria seção sem uma nova janela de navegação. Rascunhos de formulários preservados ao alternar seções na janela. Navegação de abas por teclado e layout responsivo.
+
+TypeScript e build Linux aprovados. Validações no endereço público pelo Chromium real cobriram senhas de quatro caracteres, bloqueio de senhas menores/perfis de gestão, primeiro acesso, troca/reset/revogação, navegação e cadastro/matrícula na turma, buscas, retenção de rascunhos, PDF/publicação e criação de avaliação. Capturas desktop e celular inspecionadas. As atualizações preservam os cadastros reais e removem somente dados temporários da verificação.
+
 ## Pendências gerais
 
 - Administração de múltiplas instituições na interface; a instalação inicial cria uma instituição.
