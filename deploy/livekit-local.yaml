@@ -1,0 +1,19 @@
+# Local development only; start with scripts/start-livekit-local.ps1 on Windows.
+port: 7880
+bind_addresses: [127.0.0.1]
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+  enable_loopback_candidate: true
+keys:
+  aprender-local: aprender-local-dev-secret-change-in-production-2026
+room:
+  auto_create: false
+  empty_timeout: 60
+  departure_timeout: 20
+logging:
+  level: warn
+webhook:
+  api_key: aprender-local
+  urls: [http://127.0.0.1:3001/api/live/webhook]

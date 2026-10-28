@@ -34,6 +34,7 @@ model User {
   enrollments Enrollment[]
   works PdfWork[]
   attempts AssessmentAttempt[]
+  liveSessions LiveSession[]
   @@unique([institutionId, username])
   @@index([institutionId, role])
 }
@@ -64,6 +65,7 @@ model Class {
   createdAt DateTime @default(now())
   enrollments Enrollment[]
   lessons Lesson[]
+  liveSessions LiveSession[]
   @@index([teacherId])
 }
 model Lesson {
@@ -79,6 +81,20 @@ model Lesson {
   documents PdfDocument[]
   assessments Assessment[]
   @@index([classId, published])
+}
+
+model LiveSession {
+  id String @id @default(uuid())
+  classId String
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  hostId String
+  host User @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  roomName String @unique
+  startedAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  endedAt DateTime?
+  @@index([classId, endedAt])
+  @@index([hostId])
 }
 model PdfDocument {
   id String @id @default(cuid())

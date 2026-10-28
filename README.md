@@ -43,9 +43,23 @@ Só aparecem aulas e avaliações publicadas das turmas em que o aluno está mat
 
 Os conteúdos são atualizados ao retornar à janela, a cada 30 segundos enquanto ela estiver visível e pelo botão **Atualizar**. A conta do aluno reúne tema claro/escuro, troca de senha e saída. O primeiro acesso mantém a troca obrigatória de senha.
 
+## Aulas ao vivo
+
+Em **Turmas → Abrir turma → Aula ao vivo**, selecione **Compartilhar tela ou vídeo**. Para transmitir um vídeo, abra-o em outra aba do Chrome ou Edge, escolha essa aba na janela de compartilhamento e marque **Compartilhar áudio da aba**. Depois dê play no vídeo. O professor pode ligar o microfone para explicar e encerrar a qualquer momento.
+
+Os alunos entram pelo cartão **Aula ao vivo** no início deles; durante a transmissão, ele indica **Assistir ao vivo**. A sala é exclusiva da turma e os alunos apenas assistem, inclusive pelo celular. O botão Ativar áudio aparece quando o navegador exige um toque para permitir o som. Há tela cheia, silenciar áudio e saída da sala. Não há gravação automática.
+
+No Windows, inicie o serviço local com `powershell -ExecutionPolicy Bypass -File scripts/start-livekit-local.ps1` e use as variáveis LIVEKIT do `.env.example`. A aplicação local está na porta 3001 neste ambiente. Veja [configuração e limites da transmissão](docs/AULAS-AO-VIVO.md).
+
 ## Apostilas interativas
 
 Abra **Turmas → Abrir turma → Nova aula**. Crie a aula em rascunho, envie um PDF e selecione **Publicar aula**. Os alunos matriculados podem abrir o material, navegar pelas páginas, inserir respostas, movê-las, mudar fonte/cor e destacar regiões. O original não é alterado.
+
+A apostila abre no modo **Ler**, com todas as páginas em sequência e ajuste automático à largura da tela. Clicar na página durante a leitura não cria caixas. Para responder, selecione **Escrever resposta** e clique uma vez no local desejado; após inserir a caixa, o editor volta ao modo Ler. Clique em uma resposta existente para editar. Uma caixa de texto vazia é descartada ao sair da seleção. O destaque também é inserido uma vez por acionamento.
+
+A barra fixa tem uma única linha compacta, com Ler/Escrever/Destacar, **Fonte** (8 a 40), cor, navegação e zoom. No celular, deslize as ferramentas para os lados; o botão **Entregar** permanece visível à direita. O ícone de salvamento informa a situação pelo texto acessível/tooltip e o botão **?** abre as instruções sem aumentar a altura da barra. Fonte e cor alteram a resposta selecionada ou definem as próximas respostas. Role normalmente para continuar lendo ou use o seletor de página para saltar; o número acompanha a leitura. As páginas próximas da tela são desenhadas sob demanda e os canvases distantes são liberados, preservando as respostas e limitando memória em apostilas grandes.
+
+Para ajustar a caixa de resposta, clique no texto e arraste o **canto inferior direito** para alterar largura e altura. As alças lateral e inferior ajustam uma dimensão por vez; a alça de cima move a caixa. Também é possível focar uma alça com Tab e usar as setas (Shift aumenta o passo). O tamanho fica salvo nas anotações e permanece ao digitar, mudar a fonte, alterar o zoom ou reabrir. Textos maiores que a caixa podem ser percorridos dentro dela; Enter continua criando novas linhas. As alças não aparecem após a entrega nem na prévia do professor.
 
 Links incorporados ao PDF são clicáveis: sites abrem em outra aba, e links internos levam à página indicada. Funcionam na prévia do professor, durante a edição e após a entrega, com zoom, rotação e toque no celular. Clicar em um link não cria uma resposta. Endereços escritos apenas como texto, sem um link incorporado ao PDF, não são convertidos automaticamente.
 
@@ -54,6 +68,8 @@ As anotações são individuais e salvas após 700 ms de pausa. Cada atualizaç�
 Para renomear um PDF já enviado, abra **Turma → Aulas e apostilas → Renomear**, ao lado da apostila. Digite o nome e selecione **Salvar nome**. O professor responsável e o administrador podem renomear; arquivo, respostas, entregas e correções permanecem vinculados à mesma apostila. O nome atualizado aparece para os alunos e nos downloads, incluindo a exportação respondida.
 
 O botão **Entregar apostila** bloqueia a edição depois de confirmar o salvamento. O professor usa **Acompanhar → Abrir trabalho** para consultar respostas, registrar comentário/nota e reabrir a edição. Há exportação do documento preenchido, sem alterar o original. A exportação inicial usa fonte Helvetica e aceita o repertório latino, incluindo português; caracteres fora desse repertório exibem erro de exportação.
+
+Para devolver uma apostila entregue, use **Turma → Aulas e apostilas → Acompanhar → Devolver para ajustes**, na linha do aluno. O mesmo botão aparece no topo de **Abrir trabalho**. A devolução não exige comentário ou nota; preserva as respostas, o histórico e as correções. O aluno deve reabrir a apostila para editar e entregar novamente. Apenas o administrador e o professor responsável podem devolver, e uma versão antiga da página não pode reabrir uma entrega mais recente.
 
 Nesta versão os originais ficam em `bytea` no PostgreSQL, privados e protegidos pela mesma autorização da API. Limites: **5 MB por arquivo, 200 páginas**, até 400 mil caracteres de JSON de anotações. Isso permite persistência real em desenvolvimento e implantação inicial sem credenciais adicionais. Migre os originais para armazenamento de objetos privado (como Supabase Storage) antes de ampliar o volume; o navegador deve continuar acessando documentos pela autorização do servidor. Rascunhos locais exigem espaço no armazenamento do navegador e um perfil individual em computadores compartilhados.
 

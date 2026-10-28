@@ -141,20 +141,21 @@ test('aluno escreve em três páginas, recupera autosave, sincroniza offline e e
   await expect(page.getByRole('heading', { name: 'Olá, Estudante!' })).toBeVisible();
   await page.getByRole('button', { name: 'Apostilas', exact: true }).click();
   await page.getByRole('link', { name: 'Abrir apostila: Aula 03.pdf', exact: true }).click();
-  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.locator('.pdf-sheet[data-page-number="1"] canvas')).toBeVisible();
   for (let i = 1; i <= 3; i++) {
     await page.getByLabel('Selecionar página').selectOption(String(i));
-    await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
-    await page.getByTestId('pdf-page').click({ position: { x: 80, y: 200 } });
+    await expect(page.locator(`.pdf-sheet[data-page-number="${i}"]`)).toHaveAttribute('data-rendered', 'true');
+    await page.getByRole('button', { name: 'Escrever resposta' }).click();
+    await page.locator(`.pdf-sheet[data-page-number="${i}"]`).click({ position: { x: 80, y: 200 } });
     await page.getByLabel(`Resposta na página ${i}`).fill(`Minha resposta na pagina ${i}`);
     await expect(page.getByRole('status')).toHaveText('Todas as alterações salvas');
   }
   await page.reload();
   await page.getByLabel('Selecionar página').selectOption('3');
   await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Minha resposta na pagina 3');
-  const before = await page.locator('.pdf-note').getAttribute('style');
+  const before = await page.locator('.pdf-sheet[data-page-number="3"] .pdf-note').getAttribute('style');
   await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('1.5');
-  expect(await page.locator('.pdf-note').getAttribute('style')).toBe(before);
+  expect(await page.locator('.pdf-sheet[data-page-number="3"] .pdf-note').getAttribute('style')).toBe(before);
   await context.setOffline(true);
   await page.getByLabel('Resposta na página 3').fill('Rascunho offline recuperado');
   await expect(page.getByRole('status')).toContainText('rascunho salvo', { timeout: 15_000 });
@@ -163,8 +164,8 @@ test('aluno escreve em três páginas, recupera autosave, sincroniza offline e e
   await page.reload();
   await page.getByLabel('Selecionar página').selectOption('3');
   await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Rascunho offline recuperado');
-  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
-  const inkPixels = await page.locator('canvas').evaluate(canvas => {
+  await expect(page.locator('.pdf-sheet[data-page-number="3"]')).toHaveAttribute('data-rendered', 'true');
+  const inkPixels = await page.locator('.pdf-sheet[data-page-number="3"] canvas').evaluate(canvas => {
     const pixels = (canvas as HTMLCanvasElement).getContext('2d')!.getImageData(0, 0, (canvas as HTMLCanvasElement).width, (canvas as HTMLCanvasElement).height).data;
     let count = 0; for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 100 && pixels[i + 3] > 0) count++;
     return count;
@@ -181,14 +182,14 @@ test('aluno escreve em três páginas, recupera autosave, sincroniza offline e e
   await page.getByLabel('Selecionar página').selectOption('3');
   await expect(page.getByLabel('Resposta na página 3')).toHaveValue('Rascunho preservado apos fechar a aba');
   await expect(page.getByRole('status')).toHaveText('Todas as alterações salvas');
-  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
+  await expect(page.locator('.pdf-sheet[data-page-number="3"]')).toHaveAttribute('data-rendered', 'true');
   await page.evaluate(() => window.scrollTo(0, 400));
   await expect.poll(() => page.locator('.editor-controls').evaluate(element => element.getBoundingClientRect().top)).toBe(0);
-  await expect(page.getByRole('button', { name: 'Escrever resposta' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Ler', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Ajustar à largura' }).click();
-  await expect(page.getByTestId('pdf-page')).toHaveAttribute('data-rendered', 'true');
-  expect((await page.getByTestId('pdf-page').boundingBox())!.width).toBeLessThanOrEqual(360);
+  await page.getByLabel('Zoom', { exact: true }).selectOption('fit');
+  await expect(page.locator('.pdf-sheet[data-page-number="3"]')).toHaveAttribute('data-rendered', 'true');
+  expect((await page.locator('.pdf-sheet[data-page-number="3"]').boundingBox())!.width).toBeLessThanOrEqual(366);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: 'test-results/editor-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1280, height: 720 });

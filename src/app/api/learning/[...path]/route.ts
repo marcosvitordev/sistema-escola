@@ -122,6 +122,18 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       const updated = await db.pdfWork.updateMany({ where: { id: work.id, version: data.version, submittedAt: null }, data: { submittedAt: new Date(), version: { increment: 1 } } });
       return updated.count ? json({ ok: true }) : fail('A versão mudou. Reabra a apostila e confira antes de entregar.', 409);
     }
+    if (action === 'reopen' && req.method === 'POST') {
+      if (!manage) return fail('Somente o professor responsável ou administrador pode devolver a apostila.', 403);
+      const data = z.object({ version: z.number().int().min(0) }).parse(await req.json());
+      if (!work) return fail('O aluno ainda não entregou esta apostila.', 409);
+      const result = await db.$transaction(async tx => {
+        const updated = await tx.pdfWork.updateMany({ where: { id: work.id, version: data.version, submittedAt: { not: null } }, data: { submittedAt: null, version: { increment: 1 } } });
+        if (!updated.count) return null;
+        await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'pdf-reopened', resourceId: work.id } });
+        return tx.pdfWork.findUniqueOrThrow({ where: { id: work.id }, select: { version: true, updatedAt: true } });
+      });
+      return result ? json({ ok: true, ...result }) : fail('A situação da apostila mudou ou ela já foi devolvida. Atualize a página.', 409);
+    }
     if (action === 'feedback' && req.method === 'POST' && manage && work) {
       const data = z.object({ comment: z.string().trim().min(1).max(5000), grade: z.number().min(0).max(10).optional(), reopen: z.boolean().default(false) }).parse(await req.json());
       await db.$transaction(async tx => {

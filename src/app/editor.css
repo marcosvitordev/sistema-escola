@@ -7,6 +7,13 @@
 .pdf-sheet .pdf-link:hover { background: #28766020; outline: 1px solid #287660; }
 .pdf-sheet .pdf-link:focus-visible { outline: 3px solid #287660; background: #28766020; outline-offset: 2px; }
 .pdf-link-error { position: absolute; bottom: 0; left: 0; z-index: 3; padding: 10px; background: #fff7e8; color: #61431c; font-size: 12px; }
+.pdf-return-panel { margin: 20px auto; max-width: 850px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pdf-return-panel h2 { font-size: 17px; margin: 0 0 8px; }
+.pdf-return-panel p { font-size: 12px; line-height: 1.6; margin: 0; }
+.pdf-return-action button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; min-height: 44px; }
+.pdf-return-action .error { white-space: normal; max-width: 320px; margin-top: 8px; }
+.pdf-work-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+@media(max-width:760px) { .pdf-return-panel { margin: 15px; flex-direction: column; align-items: stretch; } .pdf-return-panel .pdf-return-action button { width: 100%; } }
 .editor-controls {
   position: sticky;
   top: 0;
@@ -16,41 +23,55 @@
 }
 .feedback > summary { cursor: pointer; font-size: 19px; font-weight: 700; }
 .editor-document-title { flex: 1; }
-.editor-toolbar { gap: 12px 24px; padding: 12px 25px; }
-.reader-controls, .writing-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.writing-controls { padding-left: 20px; border-left: 1px solid var(--line); }
-.editor-toolbar label { font-size: 11px; }
-.editor-toolbar select { height: 36px; font-size: 12px; min-width: 60px; }
-.editor-toolbar button, .text-options summary { min-height: 44px; font-size: 12px; padding: 10px 12px; }
-.editor-toolbar .tool { border: 1px solid var(--line); color: var(--ink); }
-.editor-toolbar .tool.active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
-.page-controls > span { font-size: 12px; }
-.text-options { position: relative; }
-.text-options summary { display: flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 7px; border: 1px solid var(--line); list-style: none; }
-.text-options summary::-webkit-details-marker { display: none; }
-.text-options summary:focus-visible { outline: 3px solid #6dc5a5; outline-offset: 3px; }
-.text-options[open] summary { background: var(--soft); }
-.text-options-panel { position: absolute; right: 0; top: calc(100% + 8px); width: 230px; padding: 18px; display: flex; flex-wrap: wrap; gap: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: 0 8px 25px #173c2b26; z-index: 2; }
-.text-options-panel small { font-size: 11px; line-height: 1.5; }
-.editor-guidance { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 25px; border-bottom: 1px solid var(--line); }
-.editor-guidance .editor-hint { font-size: 12px; margin: 0; padding: 0; }
-.editor-guidance .save-status { flex-shrink: 0; font-size: 11px; width: auto; }
-.pdf-sheet:has(.pdf-note) { scroll-margin-top: 180px; }
+.editor-visually-hidden { position: absolute !important; top: 0 !important; left: 0 !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+.editor .editor-toolbar { display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+.editor-tool-strip { display: flex; align-items: center; flex-wrap: nowrap; gap: 14px; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding: 2px 0; }
+.editor .reader-controls, .editor .writing-controls, .editor .tool-group, .editor-format-controls, .editor-bar-actions { display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; flex-shrink: 0; }
+.editor .writing-controls { border: 0; padding: 0; width: auto; }
+.editor .reader-controls { width: auto; padding-left: 12px; border-left: 1px solid var(--line); }
+.editor .editor-toolbar label { flex-direction: row; align-items: center; gap: 5px; font-size: 11px; white-space: nowrap; }
+.editor .editor-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; min-height: 36px; min-width: 34px; padding: 7px 9px; font-size: 12px; white-space: nowrap; }
+.editor .editor-toolbar .tool { color: var(--ink); border: 1px solid var(--line); }
+.editor .editor-toolbar .tool.active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
+.editor .editor-toolbar select { height: 36px; min-width: 0; padding: 5px 7px; font-size: 12px; }
+.editor .page-controls select { width: 52px; }
+.editor .page-controls > span { font-size: 11px; color: var(--muted); }
+.editor .reader-controls > label select { width: 90px; }
+.editor-format-controls { margin-left: 8px; }
+.editor .editor-format-controls input[type=number] { width: 52px; height: 36px; font-size: 13px; padding: 4px 5px; }
+.editor .editor-format-controls input[type=color] { width: 32px; height: 34px; padding: 2px; }
+.editor .editor-bar-actions { gap: 6px; }
+.editor-save-indicator { display: inline-flex; align-items: center; justify-content: center; color: var(--primary); width: 24px; height: 36px; }
+.editor .editor-toolbar .editor-help-button { padding: 6px; min-width: 32px; }
+.editor-help-panel { position: absolute; top: calc(100% + 8px); right: 12px; width: min(360px, calc(100vw - 24px)); padding: 18px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 25px #173c2b26; }
+.editor-help-panel strong { font-size: 14px; }
+.editor-help-panel p { font-size: 12px; line-height: 1.6; }
+.editor-help-panel button { font-size: 12px; }
 .pdf-note textarea::placeholder { color: #5e786d; font-size: 12px; }
+.pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 28px; width: max-content; min-width: 100%; }
+.pdf-page-frame { width: max-content; }
+.pdf-page-label { margin-bottom: 8px; color: #42584e; font-size: 12px; font-weight: 600; }
+.pdf-pages .pdf-sheet { display: block; }
+.pdf-sheet canvas { display: block; }
+.pdf-sheet.is-placing-note { cursor: crosshair; }
+.editor .pdf-scroll { text-align: left; padding: 20px; }
 .pdf-note.text:has(textarea:placeholder-shown) { border: 1px dashed #287660; background: #edf7f1bf; }
 .move-handle { min-width: 30px; min-height: 28px; top: -29px; }
-@media(max-width:1100px) {
-  .writing-controls { padding-left: 0; border-left: 0; }
-}
+.pdf-note .resize-handle { position: absolute; z-index: 5; display: grid; place-items: center; width: 24px; height: 24px; min-width: 0; min-height: 0; padding: 0; border: 1px solid #226353; border-radius: 5px; background: #fff; color: #226353; touch-action: none; }
+.pdf-note .resize-width { right: -12px; top: calc(50% - 12px); cursor: ew-resize; }
+.pdf-note .resize-height { bottom: -12px; left: calc(50% - 12px); cursor: ns-resize; }
+.pdf-note .resize-both { right: -12px; bottom: -12px; background: #226353; color: #fff; cursor: nwse-resize; }
+.pdf-note.selected:has(.resize-handle) { border: 1px dashed #226353; }
 @media(max-width:760px) {
-  .editor-toolbar { padding: 10px 12px; gap: 10px; }
-  .reader-controls { width: 100%; gap: 8px; justify-content: space-between; }
-  .editor-toolbar button, .text-options summary { padding: 9px; font-size: 11px; }
-  .editor-toolbar .fit-width { font-size: 10px; gap: 4px; }
-  .writing-controls { gap: 8px; width: 100%; }
-  .writing-controls > .tool-group { gap: 5px; flex-wrap: wrap; }
-  .editor-guidance { padding: 9px 12px; gap: 5px; flex-direction: column; align-items: flex-start; }
-  .editor-guidance .editor-hint { font-size: 11px; }
-  .editor-guidance .save-status { margin: 0; font-size: 10px; }
-  .text-options-panel { right: auto; left: 0; }
+  .editor .editor-toolbar { gap: 6px; padding: 6px; }
+  .editor .editor-tool-label { display: none; }
+  .editor .editor-toolbar .tool { min-width: 36px; padding: 7px; }
+  .editor .editor-tool-strip { gap: 10px; }
+  .editor .writing-controls, .editor .tool-group { gap: 4px; }
+  .editor-format-controls { gap: 5px; margin-left: 5px; }
+  .editor .editor-format-controls input[type=number] { width: 44px; }
+  .editor .editor-bar-actions { gap: 3px; }
+  .editor-save-indicator { width: 20px; }
+  .editor .editor-toolbar .editor-submit { padding: 7px 8px; font-size: 11px; }
+  .editor .pdf-scroll { padding: 12px; }
 }

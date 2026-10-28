@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ClipboardList, FileText, GraduationCap, HelpCircle, Home, KeyRound, LogOut, MessageCircle, Moon, Play, RefreshCw, Search, Sun, UserRound, X } from 'lucide-react';
 import { assessmentState, materialState, type StudentArea, type StudentAssessment, type StudentClass, type StudentHomeData, type StudentIdentity, type StudentMaterial } from '@/lib/student-home-types';
 import { Field, Form, request } from './form';
+import { ClassLiveLink } from './class-live-link';
 
 const navigation = [
   { id: 'inicio', label: 'Meu início', mobile: 'Início', icon: Home },
@@ -83,6 +84,7 @@ export function StudentWorkspace({ user, initialArea = 'inicio', initialClassId 
         {!data && !error && <div className="student-loading" role="status"><BookOpen size={28} /><p>Estamos preparando seus materiais…</p></div>}
         {data && <>
           {classes.length > 1 ? <label className="student-class-filter">Minha turma<select value={currentClassId} onChange={e => setClassId(e.target.value)}><option value="all">Todas as minhas turmas</option>{classes.map(c => <option value={c.id} key={c.id}>{c.name} · {c.course}</option>)}</select></label> : classes[0] && <div className="student-class-label"><GraduationCap size={19} /><strong>{classes[0].course}</strong><span>· {classes[0].name}</span><small>Professor: {classes[0].teacher}</small></div>}
+          {classes.filter(classroom => currentClassId === 'all' || classroom.id === currentClassId).map(classroom => <ClassLiveLink key={classroom.id} classId={classroom.id} name={classroom.name} />)}
           {!classes.length ? <StudentEmpty icon={GraduationCap} title="Sua turma vai aparecer aqui" text="Seu professor ainda precisa realizar sua matrícula. Peça ajuda a ele para começar." /> : <>
           {area === 'inicio' && <>
             <section className="student-shortcuts" aria-label="Acessos rápidos"><button className="student-shortcut materials" onClick={() => navigate('apostilas')}><span className="student-icon blue"><BookOpen size={29} /></span><div><h2>Minhas apostilas</h2><p>Ler, responder e continuar de onde parou.</p><strong>{materials.length} {materials.length === 1 ? 'apostila disponível' : 'apostilas disponíveis'}</strong></div><ArrowRight size={21} /></button><button className="student-shortcut activities" onClick={() => navigate('atividades')}><span className="student-icon amber"><ClipboardList size={29} /></span><div><h2>Provas e atividades</h2><p>Responder e entregar para seu professor.</p><strong>{assessments.length} {assessments.length === 1 ? 'avaliação disponível' : 'avaliações disponíveis'}</strong></div><ArrowRight size={21} /></button></section>
