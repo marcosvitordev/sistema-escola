@@ -1,5 +1,15 @@
 # Registro de implementação
 
+## Melhoria visual e de navegação — 04/11/2026
+
+Portal do professor com painel de ações úteis, tipografia mais legível, cartões de turma compactos e atalhos para apostilas, avaliações e aula ao vivo. Busca por turma/curso/professor, cursos e pessoas; mensagens de busca sem resultados com recuperação. Listas de avaliações com busca e filtros de publicação, rascunhos e correções pendentes. Exclusão recebe tratamento visual de ação destrutiva.
+
+Aluno com filtros Todos/Para fazer/Entregues/Prazo encerrado, contadores, limpeza de busca/filtros e destaque para entregas pendentes nos próximos sete dias. URL preserva área, turma e situação. As seções da turma e do painel do professor também usam URL: abrir um material, voltar, recarregar e acessar atalhos mantém a seção correta. Implementação usa integração nativa do History API com useSearchParams, conforme documentação local do Next.js.
+
+CSS responsivo separado e limitado aos portais; a barra compacta do PDF é preservada. Foco de teclado, nomes acessíveis dos controles, temas claro/escuro, textos de situação e alvos de toque revisados.
+
+Validação: TypeScript e build Linux aprovados. Chromium conectado à VPS confirmou, em instituição temporária, buscas de turma/pessoa/avaliação, publicação e rascunhos, prazos, filtros reais de pendências/entregas, troca de turma, navegação direta, retorno de PDF, recarga, acesso do aluno pela turma, temas e ausência de overflow horizontal a 390 px. Capturas de professor/aluno em desktop/celular inspecionadas. Sem erros JavaScript nos cenários. Dados e credenciais de teste removidos. Backup criado antes da atualização; nenhuma migração necessária.
+
 ## Fase 1 — Fundação validada
 
 Código implementado: estrutura Next.js/TypeScript, modelo PostgreSQL/Prisma, API REST, instalação inicial protegida, login sem e-mail, hash de senhas, sessão no servidor, troca obrigatória de senha inicial, recuperação supervisionada, cadastros de cursos/turmas/usuários/matrículas, dados isolados por instituição e professor, navegação por perfil, temas claro/escuro e registros de cadastro.

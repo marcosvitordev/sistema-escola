@@ -16,5 +16,5 @@ export function DeleteLearningItem({ endpoint, title, kind, onDeleted }: { endpo
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha de conexão. Tente novamente.'); }
     finally { setBusy(false); }
   }
-  return <span><button type="button" className="text-button" disabled={busy} aria-label={`Excluir ${kind}: ${title}`} onClick={remove}><Trash2 size={15} />{busy ? 'Excluindo…' : 'Excluir'}</button>{error && <span className="error" role="alert">{error}</span>}</span>;
+  return <span className="delete-item-control"><button type="button" className="text-button" disabled={busy} aria-label={`Excluir ${kind}: ${title}`} onClick={remove}><Trash2 size={15} />{busy ? 'Excluindo…' : 'Excluir'}</button>{error && <span className="error" role="alert">{error}</span>}</span>;
 }
