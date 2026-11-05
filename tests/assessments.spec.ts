@@ -185,3 +185,29 @@ test('aluno revisa acertos parciais, gabaritos e comentários nos oito tipos', a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/correcao-detalhada-celular.png', fullPage: true });
 });
+
+
+test('excluir prova e atividade protege permissoes e apaga respostas e anexos', async ({ browser }) => {
+  const path = `/api/assessments/items/${itemId}`;
+  expect((await student.delete(path)).status()).toBe(403);
+  expect((await outsider.delete(path)).status()).toBe(404);
+  expect((await teacher.delete(path, { headers: { Origin: 'https://externo.example' } })).status()).toBe(403);
+  expect(await db.assessmentAttempt.count({ where: { assessmentId: itemId } })).toBeGreaterThan(0);
+  expect(await db.assessmentFile.count({ where: { assessmentId: itemId } })).toBeGreaterThan(0);
+  const context = await browser.newContext({ baseURL, storageState: await teacher.storageState() });
+  const page = await context.newPage(); await page.goto(`/turmas/${classId}/atividades`);
+  const title = (await db.assessment.findUniqueOrThrow({ where: { id: itemId } })).title;
+  const button = page.getByRole('button', { name: `Excluir avalia\u00e7\u00e3o: ${title}`, exact: true });
+  page.once('dialog', dialog => dialog.dismiss()); await button.click(); await expect(button).toBeVisible();
+  page.once('dialog', dialog => dialog.accept()); await button.click(); await expect(button).toHaveCount(0);
+  expect((await student.get(path)).status()).toBe(404);
+  expect((await student.get(`/api/assessments/attempts/${attemptId}`)).status()).toBe(404);
+  expect(await db.assessmentAttempt.count({ where: { assessmentId: itemId } })).toBe(0);
+  expect(await db.assessmentQuestion.count({ where: { assessmentId: itemId } })).toBe(0);
+  expect(await db.assessmentFile.count({ where: { assessmentId: itemId } })).toBe(0);
+  expect(await db.auditLog.count({ where: { resourceId: itemId, action: 'assessment-deleted' } })).toBe(1);
+  const activity = await teacher.post('/api/assessments/items', { data: { lessonId, kind: 'ACTIVITY', title: 'Atividade para excluir', maxAttempts: 1, questions } });
+  expect(activity.status()).toBe(201);
+  expect((await teacher.delete(`/api/assessments/items/${(await activity.json()).id}`)).status()).toBe(200);
+  await context.close();
+});

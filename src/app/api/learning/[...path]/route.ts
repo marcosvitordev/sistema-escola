@@ -67,6 +67,21 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     if (resource !== 'documents' || !id) return fail('Operação não encontrada.', 404);
     const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess, ...(!manage ? { published: true } : {}) } }, select: { id: true, title: true, pageCount: true, lesson: { select: { classId: true, title: true } } } });
     if (!document) return fail('Apostila não encontrada.', 404);
+    if (!action && req.method === 'DELETE') {
+      if (!manage) return fail('Somente o professor responsável ou administrador pode excluir a apostila.', 403);
+      await db.$transaction(async tx => {
+        const schema = new URL(process.env.DATABASE_URL!).searchParams.get('schema') ?? 'escola';
+        await tx.$queryRaw`SELECT set_config('search_path', ${`"${schema.replaceAll('"', '""')}"`}, true)`;
+        await tx.$queryRaw`SELECT id FROM "PdfDocument" WHERE id = ${id} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM "PdfWork" WHERE "documentId" = ${id} FOR UPDATE`;
+        await tx.pdfRevision.deleteMany({ where: { work: { documentId: id } } });
+        await tx.pdfFeedback.deleteMany({ where: { work: { documentId: id } } });
+        await tx.pdfWork.deleteMany({ where: { documentId: id } });
+        await tx.pdfDocument.deleteMany({ where: { id } });
+        await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'pdf-deleted', resourceId: id } });
+      });
+      return json({ ok: true });
+    }
     if (action === 'rename' && req.method === 'POST') {
       if (!manage) return fail('Somente o professor responsável ou administrador pode renomear a apostila.', 403);
       const parsed = z.object({ title: z.string().trim().min(1, 'Informe o nome da apostila.').max(150, 'Use até 150 caracteres no nome.').refine(title => !/[\u0000-\u001f\u007f]/.test(title), 'O nome não pode conter quebras de linha ou caracteres de controle.') }).safeParse(await req.json());
@@ -157,4 +172,4 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     return fail('Não foi possível concluir. Tente novamente.', 500);
   }
 }
-export { handler as GET, handler as POST, handler as PUT };
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };

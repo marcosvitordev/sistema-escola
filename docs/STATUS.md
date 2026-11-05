@@ -121,3 +121,12 @@ Google Forms: exportador v3 com ZIP e imagens, prévia de associação por pergu
 A instalação inicial foi interrompida por falta de espaço no disco C:. Após liberação de espaço, as dependências foram reinstaladas com lockfile, o Docker Desktop iniciou e o PostgreSQL local ficou saudável. Um novo esgotamento de memória interrompeu uma rodada de testes; as execuções seguintes usaram limite de heap menor e concluíram. O espaço livre permanece reduzido; nenhuma limpeza de arquivos pessoais foi realizada.
 
 Durante a Fase 3 o disco voltou a esgotar. A limpeza automática do cache de testes foi bloqueada pela política do ambiente. Foi possível recuperar espaço com compactação NTFS apenas em `node_modules`, sem excluir arquivos. Os testes passaram a desabilitar o cache persistente de compilação para reduzir gravações. O servidor local foi pausado durante a validação para liberar memória.
+
+
+## Exclusao de apostilas, provas e atividades (04/11/2026)
+
+Botao Excluir nas listas da turma, disponivel ao professor responsavel e administrador. A confirmacao informa que respostas, entregas, anexos e correcoes do item serao removidos permanentemente. Cancelar preserva o item. A interface remove o cartao apenas apos sucesso da API; falhas aparecem junto ao botao e permitem tentar novamente.
+
+Endpoints DELETE mantem autenticacao, troca inicial de senha, validacao de origem e isolamento por instituicao/turma. Exclusoes e auditoria sao atomicas. PDFs bloqueiam documento/trabalhos durante a remocao de revisoes e feedback; avaliacoes usam o mesmo bloqueio transacional das tentativas. Nao exige migracao.
+
+TypeScript e builds Windows/Linux aprovados. Verificacao automatizada via Chromium/HTTPS na VPS aprovada com instituicao temporaria: PDF respondido/entregue/corrigido, prova e atividade com imagens e arquivo enviado, cancelar e confirmar, bloqueio para aluno e origem externa, arquivo/tentativa indisponiveis apos exclusao. Dados temporarios removidos ao final. Novos cenarios adicionados aos testes de PDF e avaliacoes; a suite local nao foi executada nesta rodada porque o Docker Desktop nao iniciou. Backup criado antes da publicacao.

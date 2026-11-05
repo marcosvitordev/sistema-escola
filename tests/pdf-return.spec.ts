@@ -85,3 +85,28 @@ test('gestor devolve no acompanhamento, aluno edita e reentrega, professor devol
   expect(final.work.feedback[0].grade).toBe(8);
   await Promise.all([context.close(), learner.close(), instructor.close()]);
 });
+
+
+test('excluir apostila exige permissao e confirmacao e remove trabalhos e correcoes', async ({ browser }) => {
+  const path = `/api/learning/documents/${documentId}`;
+  expect((await student.delete(path)).status()).toBe(403);
+  expect((await outsider.delete(path)).status()).toBe(404);
+  expect((await teacher.delete(path, { headers: { Origin: 'https://externo.example' } })).status()).toBe(403);
+  const work = await db.pdfWork.findFirstOrThrow({ where: { documentId } });
+  expect(await db.pdfRevision.count({ where: { workId: work.id } })).toBeGreaterThan(0);
+  expect(await db.pdfFeedback.count({ where: { workId: work.id } })).toBeGreaterThan(0);
+  const context = await browser.newContext({ baseURL, storageState: await teacher.storageState() });
+  const page = await context.newPage(); await page.goto(`/turmas/${classId}`);
+  await page.getByRole('tab', { name: 'Aulas e apostilas', exact: true }).click();
+  const button = page.getByRole('button', { name: 'Excluir apostila: apostila-devolucao.pdf', exact: true });
+  page.once('dialog', dialog => dialog.dismiss()); await button.click();
+  await expect(button).toBeVisible(); expect((await student.get(`${path}/file`)).status()).toBe(200);
+  page.once('dialog', dialog => dialog.accept()); await button.click();
+  await expect(button).toHaveCount(0);
+  expect((await student.get(`${path}/file`)).status()).toBe(404);
+  expect(await db.pdfWork.count({ where: { documentId } })).toBe(0);
+  expect(await db.pdfRevision.count({ where: { workId: work.id } })).toBe(0);
+  expect(await db.pdfFeedback.count({ where: { workId: work.id } })).toBe(0);
+  expect(await db.auditLog.count({ where: { resourceId: documentId, action: 'pdf-deleted' } })).toBe(1);
+  await context.close();
+});

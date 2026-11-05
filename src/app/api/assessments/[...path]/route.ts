@@ -87,6 +87,17 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     if (resource === 'items' && id) {
       const assessment = await db.assessment.findFirst({ where: { id, ...access }, include: definitionInclude });
       if (!assessment) throw new RequestError('Prova ou atividade não encontrada.', 404);
+      if (!action && req.method === 'DELETE') {
+        if (!manage) throw new RequestError('Somente o professor responsável ou administrador pode excluir a avaliação.', 403);
+        await db.$transaction(async tx => {
+          await locked(tx);
+          await tx.assessmentFile.deleteMany({ where: { assessmentId: id } });
+          await tx.assessmentAttempt.deleteMany({ where: { assessmentId: id } });
+          await tx.assessment.deleteMany({ where: { id } });
+          await audit(tx, 'assessment-deleted', id);
+        });
+        return json({ ok: true });
+      }
       if (!action && req.method === 'GET') {
         const attempts = await db.assessmentAttempt.findMany({ where: { assessmentId: id, ...(!manage ? { studentId: user.id } : {}) }, select: { id: true, studentId: true, number: true, submittedAt: true, gradedAt: true, createdAt: true, updatedAt: true, student: { select: { name: true } } }, orderBy: { createdAt: 'desc' } });
         const students = manage ? await db.enrollment.findMany({ where: { classId: assessment.lesson.classId }, select: { student: { select: { id: true, name: true } } }, orderBy: { student: { name: 'asc' } } }) : [];
@@ -272,4 +283,4 @@ async function validatedFile(value: FormDataEntryValue | null, imageOnly: boolea
   if (!mimeType || (imageOnly && !['image/png', 'image/jpeg'].includes(mimeType))) throw new RequestError(imageOnly ? 'Envie uma imagem PNG ou JPEG.' : 'Formatos permitidos: PDF, PNG, JPEG ou TXT em UTF-8.');
   return { name: value.name.replace(/[\\/\r\n]/g, '_').slice(0, 150), mimeType, content };
 }
-export { handler as GET, handler as POST, handler as PUT };
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };
