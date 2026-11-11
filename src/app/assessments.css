@@ -203,3 +203,26 @@ body:has(.forms-page), body:has(.assessment-builder) { background: #f0ebf8; }
   .assessment-class-entry { align-items: flex-start; flex-direction: column; }
   .assessment-history { flex-wrap: wrap; }
 }
+
+.pdf-questions { width: min(1100px, 100%); margin: 30px auto; padding: 0 24px 28px; scroll-margin-top: 80px; }
+.pdf-questions > .section-heading { flex-wrap: wrap; }
+.pdf-questions > .section-heading h2 { margin: 0; font-size: 23px; }
+.pdf-questions > .section-heading p { font-size: 14px; max-width: 640px; }
+.pdf-question-set { margin: 22px 0; border-top: 1px solid var(--line); padding-top: 16px; }
+.pdf-question-set-actions { display: flex; justify-content: flex-end; }
+.pdf-questions .assessment-page { width: 100%; max-width: none; margin: 0; padding: 0; }
+.pdf-questions .forms-heading h3 { font-size: 26px; margin: 10px 0; overflow-wrap: anywhere; }
+.pdf-questions .assessment-instructions, .pdf-questions .assessment-preview { margin-bottom: 20px; }
+.json-questions-import { margin: 20px 0; }
+.json-questions-import > label { margin-top: 18px; }
+.json-questions-import > label > textarea { font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.6; resize: vertical; }
+.json-format-help { padding: 16px; border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; }
+.json-format-help summary { cursor: pointer; color: var(--primary); font-weight: 600; }
+.json-format-help p { line-height: 1.8; overflow-wrap: anywhere; }
+.json-format-help pre { max-height: 380px; overflow: auto; padding: 16px; background: var(--bg); border-radius: 8px; font-size: 12px; }
+.json-questions-import .upload-label { min-height: 44px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; }
+.json-preview { border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 18px; margin: 18px 0; }
+.json-preview ol { padding-left: 24px; max-height: 360px; overflow: auto; }
+.json-preview li { padding: 9px 0; overflow-wrap: anywhere; }
+.json-preview small { display: block; margin-top: 5px; }
+@media(max-width:760px) { .pdf-questions { padding: 0 14px 20px; } .pdf-questions > .section-heading > button { width: 100%; } .json-questions-import { padding: 16px; } .json-questions-import .assessment-actions { align-items: stretch; } .json-questions-import .assessment-actions button { width: 100%; justify-content: center; } .pdf-questions .forms-heading h3 { font-size: 23px; } }

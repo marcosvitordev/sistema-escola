@@ -106,6 +106,7 @@ model PdfDocument {
   pageCount Int
   blockedPages Int[] @default([])
   accessVersion Int @default(0)
+  assessments Assessment[]
   createdAt DateTime @default(now())
   works PdfWork[]
   @@index([lessonId])
@@ -171,6 +172,8 @@ model LoginAttempt {
 
 model Assessment {
   id String @id @default(cuid())
+  documentId String?
+  document PdfDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
   lessonId String
   lesson Lesson @relation(fields: [lessonId], references: [id])
   kind String
@@ -187,6 +190,7 @@ model Assessment {
   attempts AssessmentAttempt[]
   files AssessmentFile[]
   @@index([lessonId, published])
+  @@index([documentId, published])
 }
 model AssessmentQuestion {
   id String @id @default(cuid())

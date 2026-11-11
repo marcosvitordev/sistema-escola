@@ -9,7 +9,9 @@ import { AssessmentBuilder } from './assessment-builder';
 import { AssessmentAttempt } from './assessment-attempt';
 import { QuestionImages } from './question-images';
 
-export function AssessmentPage({ id, initialAttemptId }: { id: string; initialAttemptId?: string }) {
+export function AssessmentPage({ id, initialAttemptId, embedded = false }: { id: string; initialAttemptId?: string; embedded?: boolean }) {
+  const Container = embedded ? 'section' : 'main';
+  const Heading = embedded ? 'h3' : 'h1';
   const [data, setData] = useState<AssessmentResponse | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -35,13 +37,13 @@ export function AssessmentPage({ id, initialAttemptId }: { id: string; initialAt
     try { const form = new FormData(); form.set('questionId', questionId); form.set('file', file); await assessmentRequest(`items/${id}/image`, form); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível enviar a imagem.'); } finally { setBusy(false); }
   }
-  if (!data) return <main className="assessment-page"><Link href="/">← Voltar às turmas</Link><p role="status">Carregando avaliação…</p>{error && <p role="alert" className="error">{error}</p>}</main>;
+  if (!data) return <Container className="assessment-page">{!embedded && <Link href="/">← Voltar às turmas</Link>}<p role="status">Carregando avaliação…</p>{error && <p role="alert" className="error">{error}</p>}</Container>;
   const item = data.assessment;
   const totalPoints = item.questions.reduce((sum, q) => sum + q.points, 0);
   const overdue = item.dueAt !== null && new Date(item.dueAt).getTime() < Date.now();
   const draft = data.attempts.find(t => !t.submittedAt);
   const canStart = !overdue && (draft || data.attempts.length < item.maxAttempts);
-  return <main className={`assessment-page forms-page ${data.manage ? 'forms-manage' : 'forms-student'}`}><Link className="editor-back" href={`/turmas/${item.lesson.classId}/atividades`}>← Provas e atividades da turma</Link><div className="page-heading forms-heading"><div><span className="eyebrow">{item.kind === 'TEST' ? 'PROVA' : 'ATIVIDADE'} · {item.lesson.title}</span><h1>{item.title}</h1><p>{item.questions.length} questões · {totalPoints.toLocaleString('pt-BR')} pontos · {item.maxAttempts} tentativa(s)</p></div>{data.manage && <span className="pill">{item.published ? 'Publicada' : 'Rascunho'}</span>}</div>
+  return <Container className={`assessment-page forms-page ${data.manage ? 'forms-manage' : 'forms-student'}`}>{!embedded && <Link className="editor-back" href={`/turmas/${item.lesson.classId}/atividades`}>← Provas e atividades da turma</Link>}<div className="page-heading forms-heading"><div><span className="eyebrow">{item.kind === 'TEST' ? 'PROVA' : 'ATIVIDADE'} · {item.lesson.title}</span><Heading>{item.title}</Heading><p>{item.questions.length} questões · {totalPoints.toLocaleString('pt-BR')} pontos · {item.maxAttempts} tentativa(s)</p></div>{data.manage && <span className="pill">{item.published ? 'Publicada' : 'Rascunho'}</span>}</div>
     {error && <p className="error" role="alert">{error}</p>}{notice && <p className="notice" role="status">{notice}</p>}
     {editing && data.manage ? <section className="card"><AssessmentBuilder initial={item} lessons={[{ id: item.lessonId, title: item.lesson.title, published: item.lesson.published }]} onSaved={() => { setEditing(false); void load(); }} onCancel={() => setEditing(false)} /></section> : <>
       <section className="card assessment-instructions"><h2>Instruções</h2><p className="question-prompt">{item.instructions || 'Leia cada questão com atenção e revise suas respostas antes de entregar.'}</p><p>{item.dueAt ? `Prazo: ${new Date(item.dueAt).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })} (horário do Acre)` : 'Sem prazo de entrega definido.'}</p>
@@ -53,7 +55,7 @@ export function AssessmentPage({ id, initialAttemptId }: { id: string; initialAt
         <section className="card assessment-preview"><h2>Questões e gabarito</h2>{item.questions.map((q, i) => <article key={q.id}><span className="pill">{questionTypes[q.type]}</span><h3>Questão {i + 1} · {q.points} pontos</h3><p className="question-prompt">{q.prompt}</p>{q.options.length > 0 && <ol type="A">{q.options.map((option, j) => <li key={j}>{option}{q.type === 'MATCHING' && ` → ${q.matches[Number((q.answerKey as string[])[j])]}`}</li>)}</ol>}{q.type !== 'MATCHING' && q.answerKey !== null && <p className="help"><strong>Gabarito: </strong>{q.type === 'MULTIPLE_CHOICE' ? q.options[Number(q.answerKey)] : q.type === 'TRUE_FALSE' ? q.answerKey === 'true' ? 'Verdadeiro' : 'Falso' : Array.isArray(q.answerKey) ? q.answerKey.join(' · ') : 'Correção manual'}</p>}<QuestionImages question={q} index={i} />{!data.attempts.length && <label className="upload-label"><Upload size={16} />{q.images && q.images.length > 1 ? 'Substituir todas as imagens' : q.imageId ? 'Substituir imagem' : 'Adicionar imagem'}<input disabled={busy} type="file" accept="image/png,image/jpeg" onChange={e => { const file = e.target.files?.[0]; if (file) void image(q.id, file); e.target.value = ''; }} /></label>}</article>)}</section>
       </> : <section className="card"><h2>Minhas tentativas</h2>{!data.attempts.length ? <p>Você ainda não começou esta avaliação.</p> : data.attempts.map(t => <div className="assessment-history" key={t.id}><div><strong>Tentativa {t.number}</strong><p>{!t.submittedAt ? 'Em andamento' : !t.gradedAt ? 'Entregue · aguardando correção' : item.gradesReleased ? 'Correção disponível' : 'Corrigida · aguardando liberação da nota'}</p></div><button className="secondary" onClick={() => setAttemptId(t.id)}>{t.submittedAt ? 'Ver minhas respostas' : 'Continuar'}</button></div>)}</section>}
     </>}
-  </main>;
+  </Container>;
 }
 function Schedule({ dueAt, maxAttempts, busy, onSave }: { dueAt: string | null; maxAttempts: number; busy: boolean; onSave: (data: Record<string, unknown>) => Promise<void> }) {
   function save(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); const due = String(form.get('due') || ''); void onSave({ dueAt: due ? new Date(`${due}:00-05:00`).toISOString() : null, maxAttempts: Number(form.get('attempts')) }); }

@@ -1,5 +1,15 @@
 # Registro de implementação
 
+## Questões JSON abaixo das apostilas — 11/11/2026
+
+Importação por arquivo ou texto, prévia, modelo para baixar e instruções dentro do sistema. Suporta os oito tipos de questão, formato em português e gabaritos numéricos iniciados em 1. Importa como rascunho para revisão/publicação. A importação pode partir do PDF ou da turma, com vínculo opcional a uma apostila.
+
+Atividades vinculadas aparecem abaixo do PDF com o mesmo fluxo de respostas, autosave, entrega e correção já existente, usando seção incorporada sem outro elemento main. Alunos só recebem avaliações publicadas, sem gabaritos antes da liberação. Apostilas sem questões publicadas não exibem a seção para o aluno. A entrega das questões é independente da entrega da apostila.
+
+Vínculo opcional e indexado `Assessment.documentId`, sem alterar avaliações anteriores. Excluir PDF desfaz o vínculo e preserva avaliações/respostas. Duplicar na mesma aula mantém a associação. API valida responsável, instituição, aula e documento antes de importar, com criação atômica e auditoria. Guia completo em `IMPORTAR-QUESTOES-JSON.md`.
+
+Validação local: TypeScript/build aprovados, teste unitário dos oito tipos e rejeição de formatos/gabaritos inválidos, nove cenários anteriores de avaliações aprovados e três novos cenários de importação/publicação/formulário incorporado/correção/isolamento/deleção aprovados.
+
 ## Professor edita PDFs, zoom e liberação de páginas — 11/11/2026
 
 Implementado e publicado na VPS: edição do trabalho individual pelo professor responsável/administrador, inclusive após entrega, com autosave, revisões, auditoria e proteção de versão. A edição preserva a situação de entrega e as notas. Rascunhos de professores são separados por aluno. Zoom com ajuste por largura, altura ou página inteira, percentuais de 25% a 400% e botões de aumentar/diminuir; barra mantida em uma linha.

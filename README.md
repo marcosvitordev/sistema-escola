@@ -1,5 +1,7 @@
 # Aprender · Plataforma educacional
 
+Questões podem ser [importadas em JSON e vinculadas às apostilas](docs/IMPORTAR-QUESTOES-JSON.md), com formulário de resposta abaixo do PDF. O guia traz o formato completo e exemplos de todos os tipos.
+
 Aplicação Next.js com App Router, React, TypeScript, API REST e persistência PostgreSQL via Prisma. Interface em português, com temas claro e escuro. Fundação, núcleo do editor PDF e módulo de provas e atividades implementados. Relatórios exportáveis e recursos avançados continuam nas etapas seguintes.
 
 ## Executar localmente

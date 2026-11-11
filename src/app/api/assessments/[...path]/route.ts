@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { allowedRequestOrigin } from '@/lib/request-origin';
 import { GoogleFormsImportError, importGoogleForm } from '@/lib/google-forms-import';
+import { importQuestionsJson, QuestionsJsonError } from '@/lib/questions-json';
 import { currentUser } from '@/lib/auth';
 import { Prisma } from '@/generated/prisma/client';
 import { assessmentSchema, answersSchema, automaticScores, manualQuestion, validateAnswers, type QuestionDefinition, type Answers } from '@/lib/assessments';
@@ -50,6 +51,46 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const classAccess: Prisma.ClassWhereInput = { course: { institutionId: user.institutionId }, ...(user.role === 'TEACHER' ? { teacherId: user.id } : !manage ? { enrollments: { some: { studentId: user.id } } } : {}) };
     const access: Prisma.AssessmentWhereInput = { lesson: { class: classAccess, ...(!manage ? { published: true } : {}) }, ...(!manage ? { published: true } : {}) };
     const audit = (tx: Prisma.TransactionClient, event: string, resourceId: string) => tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: event, resourceId } });
+
+    if (resource === 'classes' && id && action === 'documents' && req.method === 'GET') {
+      if (!manage) throw new RequestError('Acesso restrito ao professor.', 403);
+      if (!await db.class.findFirst({ where: { id, ...classAccess }, select: { id: true } })) throw new RequestError('Turma não encontrada.', 404);
+      const documents = await db.pdfDocument.findMany({ where: { lesson: { classId: id, class: classAccess } }, select: { id: true, title: true, lessonId: true }, orderBy: { title: 'asc' } });
+      return json({ documents });
+    }
+    if (resource === 'documents' && id && !action && req.method === 'GET') {
+      const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess, ...(!manage ? { published: true } : {}) } }, select: { id: true, title: true, lessonId: true } });
+      if (!document) throw new RequestError('Apostila não encontrada.', 404);
+      const items = await db.assessment.findMany({ where: { documentId: id, ...access }, select: { id: true, title: true, published: true, _count: { select: { questions: true } } }, orderBy: { createdAt: 'asc' } });
+      return json({ document, items, manage });
+    }
+    if (['classes', 'documents'].includes(resource) && id && action === 'import-json' && req.method === 'POST') {
+      if (!manage) throw new RequestError('Somente professores e administradores podem importar questões.', 403);
+      const data = z.object({ source: z.unknown(), lessonId: z.string().optional(), documentId: z.string().nullable().optional() }).parse(await body(req));
+      let lessonId: string;
+      let documentId: string | null = null;
+      if (resource === 'documents') {
+        const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess } }, select: { id: true, lessonId: true } });
+        if (!document) throw new RequestError('Apostila não encontrada.', 404);
+        lessonId = document.lessonId; documentId = document.id;
+      } else {
+        const lesson = await db.lesson.findFirst({ where: { id: data.lessonId || '', classId: id, class: classAccess }, select: { id: true } });
+        if (!lesson) throw new RequestError('Selecione uma aula desta turma.', 404);
+        lessonId = lesson.id;
+        if (data.documentId) {
+          const document = await db.pdfDocument.findFirst({ where: { id: data.documentId, lessonId }, select: { id: true } });
+          if (!document) throw new RequestError('Selecione uma apostila desta aula.', 404);
+          documentId = document.id;
+        }
+      }
+      const parsed = importQuestionsJson(data.source);
+      const created = await db.$transaction(async tx => {
+        const { questions, dueAt, ...fields } = parsed;
+        const item = await tx.assessment.create({ data: { ...fields, lessonId, documentId, dueAt: dueAt ? new Date(dueAt) : null, questions: { create: questions.map((question, position) => ({ ...question, position, answerKey: keyJson(question.answerKey) })) } }, select: { id: true } });
+        await audit(tx, 'assessment-json-imported', item.id); return item;
+      });
+      return json(created, 201);
+    }
 
     if (resource === 'classes' && id && action === 'import' && req.method === 'POST') {
       if (!manage) throw new RequestError('Somente professores e administradores podem importar avaliações.', 403);
@@ -141,7 +182,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
         const data = z.object({ lessonId: z.string() }).parse(await body(req));
         if (!await db.lesson.findFirst({ where: { id: data.lessonId, class: classAccess } })) throw new RequestError('Aula não encontrada.', 404);
         const copy = await db.$transaction(async tx => {
-          const created = await tx.assessment.create({ data: { lessonId: data.lessonId, kind: assessment.kind, title: `${assessment.title.slice(0, 140)} (cópia)`, instructions: assessment.instructions, maxAttempts: assessment.maxAttempts } });
+          const created = await tx.assessment.create({ data: { lessonId: data.lessonId, documentId: data.lessonId === assessment.lessonId ? assessment.documentId : null, kind: assessment.kind, title: `${assessment.title.slice(0, 140)} (cópia)`, instructions: assessment.instructions, maxAttempts: assessment.maxAttempts } });
           for (const original of assessment.questions) {
             const questionId = randomUUID();
             const { files, ...fields } = original;
@@ -259,6 +300,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     }
     throw new RequestError('Operação não permitida.', 403);
   } catch (error) {
+    if (error instanceof QuestionsJsonError) return json({ error: error.message }, 400);
     if (error instanceof GoogleFormsImportError) return json({ error: error.message }, 400);
     if (error instanceof RequestError) return json({ error: error.message }, error.status);
     if (error instanceof z.ZodError) return json({ error: error.issues[0]?.message ?? 'Confira os campos.' }, 400);

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, HelpCircle, Highlighter, Minus, MousePointer2, Pencil, Plus, Trash2, Type } from 'lucide-react';
 import type { Annotation } from '@/lib/pdf-annotations';
 import { Form } from './form';
@@ -9,6 +10,8 @@ import { useDocumentWork } from './use-document-work';
 import { PdfPage, type PdfZoom } from './pdf-page';
 import { PdfPagePermissions } from './pdf-page-permissions';
 import { ReturnPdfWork } from './return-pdf-work';
+
+const PdfQuestions = dynamic(() => import('./pdf-questions').then(module => module.PdfQuestions), { ssr: false });
 
 export function PdfEditor({ documentId, studentId, manage }: { documentId: string; studentId?: string; manage: boolean }) {
   const work = useDocumentWork(documentId, studentId);
@@ -162,6 +165,7 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
     {work.conflict && <section className="conflict-box"><strong>Há outra versão salva no servidor.</strong><p>Seu rascunho foi preservado. Escolha qual versão deseja continuar usando. Manter o rascunho substituirá a versão atual após sua escolha.</p><button onClick={() => { if (confirm('Substituir as respostas do servidor pelo rascunho desta página?')) void work.resolve(true); }}>Manter meu rascunho</button><button className="secondary" onClick={() => { if (confirm('Descartar este rascunho local e carregar as respostas do servidor?')) void work.resolve(false); }}>Usar versão do servidor</button></section>}
     {work.data?.work?.feedback.length ? <details className="feedback card" id="correcao" open><summary>Correções e feedback</summary>{work.data.work.feedback.map(f => <article key={f.id}><strong>{f.grade !== null ? `Nota: ${f.grade.toLocaleString('pt-BR')} / 10` : 'Comentário do professor'}</strong><p>{f.comment}</p><small>{new Date(f.createdAt).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })}</small></article>)}</details> : null}
     <div className="pdf-scroll" ref={pdfArea}>{pdf ? <div className="pdf-pages">{Array.from({ length: pdf.numPages }, (_, i) => <PdfPage key={i + 1} pdf={pdf} pageNumber={i + 1} zoom={zoom} availableWidth={availableWidth} controlsHeight={controlsHeight} availableHeight={availableHeight} blocked={!manage && !!work.data?.document.blockedPages.includes(i + 1)} blockedForStudents={manage && !!work.data?.document.blockedPages.includes(i + 1)} notes={work.notes.filter(n => n.page === i + 1)} readOnly={readOnly || work.conflict || (!manage && !!work.data?.document.blockedPages.includes(i + 1))} tool={tool} selected={selected} onSelect={selectNote} update={update} add={addNote} onNavigate={navigate} />)}</div> : <div className="empty"><p>{pdfError || 'Abrindo páginas da apostila…'}</p></div>}</div>
+    {work.data && <PdfQuestions documentId={documentId} manage={manage} />}
     {manage && studentId && work.data?.work && <section className="feedback card"><h2>Corrigir trabalho</h2><Form endpoint={`learning/documents/${documentId}/feedback${work.query}`} label="Registrar correção" onSuccess={() => window.location.reload()} transform={d => ({ comment: d.comment, grade: d.grade === '' ? undefined : Number(d.grade), reopen: d.reopen === 'on' })}><label>Feedback para o aluno<textarea name="comment" required maxLength={5000} rows={3} /></label><label>Nota (0 a 10, opcional)<input name="grade" type="number" min="0" max="10" step="0.1" /></label><label className="checkbox-label"><input name="reopen" type="checkbox" />Reabrir a apostila para o aluno continuar</label></Form></section>}
   </main>;
 }
