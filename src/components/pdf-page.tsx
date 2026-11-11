@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
-import { ArrowDownUp, ArrowLeftRight, Move, MoveDiagonal2 } from 'lucide-react';
+import { ArrowDownUp, ArrowLeftRight, LockKeyhole, Move, MoveDiagonal2 } from 'lucide-react';
 import type { Annotation } from '@/lib/pdf-annotations';
 import { PdfLinks } from './pdf-links';
 
-export function PdfPage({ pdf, pageNumber, zoom, availableWidth, notes, readOnly, tool, selected, onSelect, update, add, onNavigate, controlsHeight }: { pdf: PDFDocumentProxy; pageNumber: number; zoom: number | 'fit'; availableWidth: number; notes: Annotation[]; readOnly: boolean; tool: string; selected: string; onSelect: (id: string) => void; update: (id: string, patch: Partial<Annotation>) => void; add: (page: number, x: number, y: number) => void; onNavigate: (page: number) => void; controlsHeight: number }) {
+export type PdfZoom = number | 'fit' | 'page' | 'height';
+
+export function PdfPage({ pdf, pageNumber, zoom, availableWidth, notes, readOnly, tool, selected, onSelect, update, add, onNavigate, controlsHeight, availableHeight, blocked = false, blockedForStudents = false }: { pdf: PDFDocumentProxy; pageNumber: number; zoom: PdfZoom; availableWidth: number; notes: Annotation[]; readOnly: boolean; tool: string; selected: string; onSelect: (id: string) => void; update: (id: string, patch: Partial<Annotation>) => void; add: (page: number, x: number, y: number) => void; onNavigate: (page: number) => void; controlsHeight: number; availableHeight: number; blocked?: boolean; blockedForStudents?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 612, height: 792 });
@@ -13,7 +15,9 @@ export function PdfPage({ pdf, pageNumber, zoom, availableWidth, notes, readOnly
   const [renderedKey, setRenderedKey] = useState('');
   const [near, setNear] = useState(pageNumber === 1);
   const pointer = useRef<{ x: number; y: number } | null>(null);
-  const scale = zoom === 'fit' ? Math.max(.1, Math.min(1.25, availableWidth / size.width)) : zoom;
+  const widthScale = availableWidth / size.width;
+  const heightScale = availableHeight / size.height;
+  const scale = typeof zoom === 'number' ? zoom : Math.max(.1, Math.min(4, zoom === 'page' ? Math.min(widthScale, heightScale) : zoom === 'height' ? heightScale : widthScale));
   const visible = near || notes.some(note => note.id === selected);
   const drag = useRef<{ id: string; startX: number; startY: number; x: number; y: number } | null>(null);
   const resize = useRef<{ id: string; kind: 'width' | 'height' | 'both'; startX: number; startY: number; width: number; height: number } | null>(null);
@@ -57,13 +61,13 @@ export function PdfPage({ pdf, pageNumber, zoom, availableWidth, notes, readOnly
     void draw();
     return () => { active = false; render?.cancel(); if (target) { target.width = 0; target.height = 0; } };
   }, [pdf, pageNumber, scale, visible]);
-  return <section className="pdf-page-frame" aria-label={`Página ${pageNumber}`} style={{ scrollMarginTop: controlsHeight + 12 }}><div className="pdf-page-label">Página {pageNumber} de {pdf.numPages}</div><div className={`pdf-sheet ${tool !== 'select' && !readOnly ? 'is-placing-note' : ''}`} ref={sheet} data-testid="pdf-page" data-page-number={pageNumber} data-page-width={size.width} data-page-height={size.height} data-rendered={visible && renderedKey === `${pageNumber}:${scale}`} style={{ width: size.width * scale, height: size.height * scale }} onPointerDown={event => { pointer.current = event.isPrimary && event.button === 0 ? { x: event.clientX, y: event.clientY } : null; }} onPointerCancel={() => { pointer.current = null; }} onClick={event => {
-    if (readOnly || event.target !== sheet.current) return;
+  return <section className="pdf-page-frame" aria-label={`Página ${pageNumber}`} style={{ scrollMarginTop: controlsHeight + 12 }}><div className="pdf-page-label">Página {pageNumber} de {pdf.numPages}{blockedForStudents && <span className="pdf-page-restriction"><LockKeyhole size={13} />Bloqueada para alunos</span>}</div><div className={`pdf-sheet ${tool !== 'select' && !readOnly ? 'is-placing-note' : ''}`} ref={sheet} data-testid="pdf-page" data-page-number={pageNumber} data-page-width={size.width} data-page-height={size.height} data-rendered={visible && renderedKey === `${pageNumber}:${scale}`} style={{ width: size.width * scale, height: size.height * scale }} onPointerDown={event => { pointer.current = event.isPrimary && event.button === 0 ? { x: event.clientX, y: event.clientY } : null; }} onPointerCancel={() => { pointer.current = null; }} onClick={event => {
+    if (readOnly || blocked || event.target !== sheet.current) return;
     if (tool === 'select') { onSelect(''); return; }
     const start = pointer.current; pointer.current = null;
     if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
     const rect = event.currentTarget.getBoundingClientRect(); add(pageNumber, (event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
-  }}>{visible && <><canvas ref={canvas} aria-label={`Página ${pageNumber} da apostila`} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} /><PdfLinks pdf={pdf} pageNumber={pageNumber} onNavigate={onNavigate} /></>}{renderError && <p className="error">{renderError}</p>}{notes.map(note => <div key={note.id} className={`pdf-note ${note.id === selected ? 'selected' : ''} ${note.type}`} style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, width: `${note.width * 100}%`, height: `${note.height * 100}%`, ...(note.type === 'highlight' ? { backgroundColor: note.color } : {}) }} onClick={e => { e.stopPropagation(); onSelect(note.id); }}>
+  }}>{visible && <><canvas ref={canvas} aria-label={`Página ${pageNumber} da apostila`} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} /><PdfLinks pdf={pdf} pageNumber={pageNumber} onNavigate={onNavigate} /></>}{blocked && <div className="pdf-locked-overlay"><LockKeyhole size={30} /><strong>Página bloqueada</strong><p>O professor liberará esta página quando chegar a hora.</p></div>}{renderError && <p className="error">{renderError}</p>}{!blocked && notes.map(note => <div key={note.id} className={`pdf-note ${note.id === selected ? 'selected' : ''} ${note.type}`} style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, width: `${note.width * 100}%`, height: `${note.height * 100}%`, ...(note.type === 'highlight' ? { backgroundColor: note.color } : {}) }} onClick={e => { e.stopPropagation(); onSelect(note.id); }}>
       {!readOnly && note.id === selected && <button className="move-handle" aria-label="Mover resposta" onPointerDown={e => { e.preventDefault(); drag.current = { id: note.id, startX: e.clientX, startY: e.clientY, x: note.x, y: note.y }; e.currentTarget.setPointerCapture(e.pointerId); }} onPointerMove={e => { const start = drag.current; if (!start || !sheet.current) return; const rect = sheet.current.getBoundingClientRect(); update(start.id, { x: Math.max(0, Math.min(1 - note.width, start.x + (e.clientX - start.startX) / rect.width)), y: Math.max(0, Math.min(1 - note.height, start.y + (e.clientY - start.startY) / rect.height)) }); }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}><Move size={12} /></button>}
       {!readOnly && note.id === selected && note.type === 'text' && ([{ kind: 'width', label: 'Alterar largura da resposta', icon: ArrowLeftRight }, { kind: 'height', label: 'Alterar altura da resposta', icon: ArrowDownUp }, { kind: 'both', label: 'Redimensionar resposta', icon: MoveDiagonal2 }] as const).map(handle => <button key={handle.kind} type="button" className={`resize-handle resize-${handle.kind}`} aria-label={handle.label} title={`${handle.label}: arraste ou use as setas do teclado`} onClick={event => event.stopPropagation()} onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;

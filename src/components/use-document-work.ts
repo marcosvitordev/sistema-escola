@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { annotationsSchema, type Annotation } from '@/lib/pdf-annotations';
 type Work = { version: number; annotations: Annotation[]; submittedAt: string | null; updatedAt: string; feedback: { id: string; comment: string; grade: number | null; createdAt: string }[] };
-export type WorkResponse = { document: { id: string; title: string; pageCount: number; lesson: { title: string } }; work: Work | null; readOnly: boolean; userId: string };
+export type WorkResponse = { document: { id: string; title: string; pageCount: number; blockedPages: number[]; accessVersion: number; lesson: { title: string } }; work: Work | null; readOnly: boolean; userId: string; targetStudent?: { id: string; name: string } };
 type Draft = { annotations: Annotation[]; baseVersion: number; savedAt: number };
 export function useDocumentWork(documentId: string, studentId?: string) {
   const query = studentId ? `?student=${encodeURIComponent(studentId)}` : '';
@@ -12,7 +12,7 @@ export function useDocumentWork(documentId: string, studentId?: string) {
   const [status, setStatus] = useState('Carregando…');
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
-  const refs = useRef({ notes: [] as Annotation[], version: 0, dirty: false, saving: false, conflict: false, readOnly: true, generation: 0, key: '', recoveredKey: '', recoveredRaw: '', localFailed: false });
+  const refs = useRef({ notes: [] as Annotation[], version: 0, accessVersion: 0, dirty: false, saving: false, conflict: false, readOnly: true, generation: 0, key: '', recoveredKey: '', recoveredRaw: '', localFailed: false });
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const persist = useCallback(() => {
     const state = refs.current;
@@ -28,13 +28,15 @@ export function useDocumentWork(documentId: string, studentId?: string) {
     const generation = state.generation;
     setStatus('Salvando…');
     try {
-      const response = await fetch(`${base}/work${query}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: state.version, annotations: state.notes }) });
+      const response = await fetch(`${base}/work${query}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: state.version, accessVersion: state.accessVersion, annotations: state.notes }) });
       const result = await response.json();
+      if (result.code === 'PAGE_ACCESS_CHANGED') { window.location.reload(); return false; }
       if (response.status === 409) {
         state.conflict = true; setConflict(true); setStatus('Conflito de versões · rascunho preservado'); return false;
       }
       if (!response.ok) throw new Error(result.error);
       state.version = result.version;
+      setData(current => current?.work ? { ...current, work: { ...current.work, version: result.version, updatedAt: result.updatedAt } } : current);
       if (state.generation === generation) {
         state.dirty = false;
         try {
@@ -59,11 +61,11 @@ export function useDocumentWork(documentId: string, studentId?: string) {
         if (!response.ok) throw new Error(result.error);
         if (!active) return;
         const state = refs.current;
-        state.version = result.work?.version ?? 0; state.readOnly = result.readOnly;
+        state.version = result.work?.version ?? 0; state.accessVersion = result.document.accessVersion; state.readOnly = result.readOnly;
         state.notes = annotationsSchema.parse(result.work?.annotations ?? []);
         let tab = '';
         try { tab = sessionStorage.getItem('aprender-tab') || crypto.randomUUID(); sessionStorage.setItem('aprender-tab', tab); } catch { tab = crypto.randomUUID(); }
-        const prefix = `aprender-draft-v1:${result.userId}:${documentId}:`;
+        const prefix = `aprender-draft-v1:${result.userId}:${documentId}:${studentId ? `${studentId}:` : ''}`;
         state.key = `${prefix}${tab}`;
         if (!result.readOnly) {
           try {
@@ -79,7 +81,7 @@ export function useDocumentWork(documentId: string, studentId?: string) {
             }
             const saved = candidates.find(c => c.key === state.key) || candidates.sort((a, b) => b.draft.savedAt - a.draft.savedAt)[0];
             if (saved) {
-              state.notes = saved.draft.annotations; state.dirty = true; state.recoveredKey = saved.key; state.recoveredRaw = saved.raw;
+              state.notes = saved.draft.annotations.filter(note => studentId || !result.document.blockedPages.includes(note.page)); state.dirty = true; state.recoveredKey = saved.key; state.recoveredRaw = saved.raw;
               if (saved.draft.baseVersion !== state.version) { state.conflict = true; setConflict(true); }
             }
           } catch { /* Autosave can still work while browser persistence is restricted. */ }
@@ -95,7 +97,30 @@ export function useDocumentWork(documentId: string, studentId?: string) {
     window.addEventListener('online', sync); window.addEventListener('beforeunload', unload);
     const interval = setInterval(sync, 5000);
     return () => { active = false; clearInterval(interval); clearTimeout(timer.current); window.removeEventListener('online', sync); window.removeEventListener('beforeunload', unload); };
-  }, [base, query, documentId, flush]);
+  }, [base, query, documentId, studentId, flush]);
+  useEffect(() => {
+    if (!data || studentId) return;
+    let active = true, pending = false;
+    const controller = new AbortController();
+    async function check() {
+      if (pending || document.visibilityState !== 'visible') return;
+      pending = true;
+      try {
+        const response = await fetch(`${base}/access`, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (active && result.accessVersion !== data!.document.accessVersion) window.location.reload();
+      } catch { /* A network failure cannot undo content already received by the browser. */ }
+      finally { pending = false; }
+    }
+    const timer = setInterval(() => { void check(); }, 5000);
+    window.addEventListener('focus', check); document.addEventListener('visibilitychange', check);
+    return () => { active = false; controller.abort(); clearInterval(timer); window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', check); };
+  }, [base, studentId, !!data, data?.document.accessVersion]);
+  function setAccess(access: { blockedPages: number[]; accessVersion: number }) {
+    refs.current.accessVersion = access.accessVersion;
+    setData(current => current ? { ...current, document: { ...current.document, ...access } } : current);
+  }
   function change(next: Annotation[]) {
     const state = refs.current;
     if (state.readOnly || state.conflict) return;
@@ -109,7 +134,7 @@ export function useDocumentWork(documentId: string, studentId?: string) {
       if (!response.ok) throw new Error('Não foi possível consultar a versão atual.');
       if (result.readOnly && useLocal) throw new Error('A apostila foi entregue. Peça ao professor para reabrir; seu rascunho continua preservado.');
       const state = refs.current;
-      state.version = result.work?.version ?? 0; state.readOnly = result.readOnly;
+      state.version = result.work?.version ?? 0; state.accessVersion = result.document.accessVersion; state.readOnly = result.readOnly;
       if (!useLocal) {
         state.notes = annotationsSchema.parse(result.work?.annotations ?? []); state.dirty = false;
         try { localStorage.removeItem(state.key); if (state.recoveredKey && localStorage.getItem(state.recoveredKey) === state.recoveredRaw) localStorage.removeItem(state.recoveredKey); } catch { /* No local draft to remove. */ }
@@ -124,10 +149,10 @@ export function useDocumentWork(documentId: string, studentId?: string) {
     const state = refs.current;
     if (state.dirty || state.saving || state.conflict) { setError('Aguarde o salvamento de todas as alterações antes de entregar.'); return; }
     try {
-      const response = await fetch(`${base}/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: state.version }) });
+      const response = await fetch(`${base}/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: state.version, accessVersion: state.accessVersion }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
       state.readOnly = true; setData(current => current ? { ...current, readOnly: true, work: current.work ? { ...current.work, submittedAt: new Date().toISOString() } : null } : null); setStatus('Apostila entregue');
     } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao entregar.'); }
   }
-  return { data, notes, change, status, error, conflict, resolve, submit, flush, base, query, pending: () => refs.current.dirty || refs.current.saving || refs.current.conflict };
+  return { data, setAccess, notes, change, status, error, conflict, resolve, submit, flush, base, query, pending: () => refs.current.dirty || refs.current.saving || refs.current.conflict };
 }

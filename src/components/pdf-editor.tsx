@@ -2,11 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, HelpCircle, Highlighter, MousePointer2, Trash2, Type } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, HelpCircle, Highlighter, Minus, MousePointer2, Pencil, Plus, Trash2, Type } from 'lucide-react';
 import type { Annotation } from '@/lib/pdf-annotations';
 import { Form } from './form';
 import { useDocumentWork } from './use-document-work';
-import { PdfPage } from './pdf-page';
+import { PdfPage, type PdfZoom } from './pdf-page';
+import { PdfPagePermissions } from './pdf-page-permissions';
 import { ReturnPdfWork } from './return-pdf-work';
 
 export function PdfEditor({ documentId, studentId, manage }: { documentId: string; studentId?: string; manage: boolean }) {
@@ -14,28 +15,31 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [pdfError, setPdfError] = useState('');
   const [page, setPage] = useState(1);
-  const [zoom, setZoom] = useState<number | 'fit'>('fit');
+  const [zoom, setZoom] = useState<PdfZoom>('fit');
   const [tool, setTool] = useState<'select' | 'text' | 'highlight'>('select');
   const [selected, setSelected] = useState('');
   const [fontSize, setFontSize] = useState(14);
   const [color, setColor] = useState('#244f87');
   const [exporting, setExporting] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(false);
+  const [availableHeight, setAvailableHeight] = useState(650);
   const [helpOpen, setHelpOpen] = useState(false);
   const pdfArea = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(612);
   const [controlsHeight, setControlsHeight] = useState(180);
-  const readOnly = work.data?.readOnly ?? true;
+  const readOnly = (work.data?.readOnly ?? true) || (manage && !!studentId && !editingStudent);
   useEffect(() => {
     const measure = () => {
       if (pdfArea.current) { const style = getComputedStyle(pdfArea.current); setAvailableWidth(Math.max(60, pdfArea.current.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight))); }
       if (controls.current) setControlsHeight(controls.current.offsetHeight);
+      setAvailableHeight(Math.max(100, window.innerHeight - (controls.current?.offsetHeight || 54) - 64));
     };
     const observer = new ResizeObserver(measure);
     if (pdfArea.current) observer.observe(pdfArea.current);
     if (controls.current) observer.observe(controls.current);
-    measure();
-    return () => observer.disconnect();
+    measure(); window.addEventListener('resize', measure);
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
   }, []);
   useEffect(() => {
     if (!pdf || !pdfArea.current) return;
@@ -66,14 +70,14 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
         const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
         if (!active) return;
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-        task = pdfjs.getDocument({ url: `${work.base}/file`, enableXfa: false });
+        task = pdfjs.getDocument({ url: `${work.base}/file?v=${work.data!.document.accessVersion}`, enableXfa: false });
         const document = await task.promise;
         if (active) setPdf(document);
       } catch { if (active) setPdfError('Não foi possível renderizar a apostila. Reabra a página ou peça ao professor para revisar o arquivo.'); }
     }
     void load();
     return () => { active = false; void task?.destroy(); };
-  }, [work.base, !!work.data]);
+  }, [work.base, !!work.data, work.data?.document.accessVersion]);
   function update(id: string, patch: Partial<Annotation>) { work.change(work.notes.map(note => note.id === id ? { ...note, ...patch } : note)); }
   function selectNote(id: string) {
     if (!readOnly && selected !== id) {
@@ -88,6 +92,11 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
       const frame = pdfArea.current?.querySelector(`[data-page-number="${next}"]`)?.closest('.pdf-page-frame');
       if (frame) window.scrollTo({ top: window.scrollY + frame.getBoundingClientRect().top - (controls.current?.offsetHeight || 0) - 12 });
     });
+  }
+  function stepZoom(direction: number) {
+    const sheet = pdfArea.current?.querySelector(`[data-page-number="${page}"]`);
+    const scale = typeof zoom === 'number' ? zoom : sheet ? sheet.getBoundingClientRect().width / Number(sheet.getAttribute('data-page-width')) : 1;
+    setZoom(Math.max(.25, Math.min(4, Math.round((scale + direction * .25) * 100) / 100)));
   }
   function addNote(pageNumber: number, x: number, y: number) {
     x = Math.min(.9, Math.max(0, x)); y = Math.min(.94, Math.max(0, y));
@@ -121,7 +130,9 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
   }
   const selectedNote = work.notes.find(n => n.id === selected);
   return <main className="editor" onKeyDown={event => { if (event.key === 'Escape') { setTool('select'); selectNote(''); setHelpOpen(false); } }}><header className="editor-header"><Link href={manage ? '/' : '/?area=apostilas'} className="editor-back"><ArrowLeft size={19} />{manage ? 'Minhas turmas' : 'Minhas apostilas'}</Link><div className="editor-document-title"><h1>{work.data?.document.title || 'Apostila interativa'}</h1><small>{work.data?.document.lesson.title}</small></div>{work.data && (!manage || studentId) && <button className="secondary" disabled={exporting} onClick={download}><Download size={16} />{exporting ? 'Exportando…' : 'Exportar PDF'}</button>}</header>
-    {manage && studentId && work.data?.work && <section className="card pdf-return-panel"><div><h2>{work.data.work.submittedAt ? 'Apostila entregue' : 'Apostila em andamento'}</h2><p>{work.data.work.submittedAt ? 'Devolva para o aluno corrigir ou completar as respostas. O conteúdo salvo será preservado.' : 'O aluno pode editar esta apostila e entregar quando concluir.'}</p></div>{work.data.work.submittedAt && <ReturnPdfWork documentId={documentId} studentId={studentId} version={work.data.work.version} />}</section>}
+    {manage && work.data && <PdfPagePermissions documentId={documentId} pageCount={work.data.document.pageCount} blockedPages={work.data.document.blockedPages} accessVersion={work.data.document.accessVersion} onSaved={work.setAccess} />}
+    {manage && studentId && work.data?.work && <section className="card pdf-return-panel"><div><h2>{work.data.work.submittedAt ? 'Apostila entregue' : 'Apostila em andamento'}</h2><strong>{work.data.targetStudent?.name}</strong><p>{editingStudent ? 'Editando o documento deste aluno. As alterações são salvas automaticamente e não mudam a situação da entrega.' : 'Você pode escrever, destacar e ajustar as respostas diretamente no documento do aluno.'}</p></div><div className="pdf-teacher-actions"><button className={editingStudent ? 'secondary' : ''} disabled={work.pending()} onClick={() => { setEditingStudent(!editingStudent); setTool('select'); selectNote(''); }}><Pencil size={16} />{editingStudent ? 'Concluir edição' : 'Editar documento do aluno'}</button>{work.data.work.submittedAt && <ReturnPdfWork documentId={documentId} studentId={studentId} version={work.data.work.version} />}</div></section>}
+
     <div className="editor-controls" ref={controls}>
       <div className="editor-toolbar" role="region" aria-label="Ferramentas do editor">
         <div className="editor-tool-strip" aria-label="Ferramentas; deslize para ver mais">
@@ -136,21 +147,21 @@ export function PdfEditor({ documentId, studentId, manage }: { documentId: strin
         <div className="reader-controls">
           <div className="tool-group page-controls">
             <button className="secondary" disabled={page <= 1} onClick={() => navigate(page - 1)} aria-label="Página anterior" title="Página anterior"><ChevronLeft size={19} /></button>
-            <label><span className="editor-visually-hidden">Página</span><select aria-label="Selecionar página" title="Ir para página" value={page} onChange={e => navigate(Number(e.target.value))}>{Array.from({ length: pdf?.numPages ?? 1 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
+            <label><span className="editor-visually-hidden">Página</span><select aria-label="Selecionar página" title="Ir para página" value={page} onChange={e => navigate(Number(e.target.value))}>{Array.from({ length: pdf?.numPages ?? 1 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}{!manage && work.data?.document.blockedPages.includes(i + 1) ? ' (bloqueada)' : ''}</option>)}</select></label>
             <span>/{pdf?.numPages ?? '…'}</span>
             <button className="secondary" disabled={!pdf || page >= pdf.numPages} onClick={() => navigate(page + 1)} aria-label="Próxima página" title="Próxima página"><ChevronRight size={19} /></button>
           </div>
-          <label><span className="editor-visually-hidden">Zoom</span><select aria-label="Zoom" title="Zoom da apostila" value={zoom} onChange={e => setZoom(e.target.value === 'fit' ? 'fit' : Number(e.target.value))}><option value="fit">Ajustar</option>{[.5, .75, 1, 1.25, 1.5, 2].map(v => <option value={v} key={v}>{Math.round(v * 100)}%</option>)}</select></label>
+          <button className="secondary" onClick={() => stepZoom(-1)} aria-label="Diminuir zoom" title="Diminuir zoom"><Minus size={17} /></button><label><span className="editor-visually-hidden">Zoom</span><select aria-label="Zoom" title="Zoom da apostila" value={zoom} onChange={e => setZoom(['fit', 'page', 'height'].includes(e.target.value) ? e.target.value as PdfZoom : Number(e.target.value))}><option value="fit">Ajustar largura</option><option value="page">Página inteira</option><option value="height">Ajustar altura</option>{[...new Set([.25, .5, .75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, ...(typeof zoom === 'number' ? [zoom] : [])])].sort((a, b) => a - b).map(v => <option value={v} key={v}>{Math.round(v * 100)}%</option>)}</select></label><button className="secondary" onClick={() => stepZoom(1)} aria-label="Aumentar zoom" title="Aumentar zoom"><Plus size={17} /></button>
         </div>
         </div>
-        <div className="editor-bar-actions"><span className="editor-save-indicator" role="status" aria-live="polite" title={work.status}>{work.status.includes('salvas') || work.status === 'Apostila entregue' ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}<span className="editor-visually-hidden">{work.status}</span></span><button className="secondary editor-help-button" aria-label="Como usar o editor" title="Como usar o editor" aria-expanded={helpOpen} aria-controls="editor-help" onClick={() => setHelpOpen(!helpOpen)}><HelpCircle size={18} /></button>{!readOnly && <button className="editor-submit" aria-label="Entregar apostila" title="Entregar apostila" disabled={work.pending()} onClick={work.submit}>Entregar</button>}</div>
+        <div className="editor-bar-actions"><span className="editor-save-indicator" role="status" aria-live="polite" title={work.status}>{work.status.includes('salvas') || work.status === 'Apostila entregue' ? <CheckCircle2 size={18} /> : <Clock3 size={18} />}<span className="editor-visually-hidden">{work.status}</span></span><button className="secondary editor-help-button" aria-label="Como usar o editor" title="Como usar o editor" aria-expanded={helpOpen} aria-controls="editor-help" onClick={() => setHelpOpen(!helpOpen)}><HelpCircle size={18} /></button>{!manage && !readOnly && <button className="editor-submit" aria-label="Entregar apostila" title="Entregar apostila" disabled={work.pending()} onClick={work.submit}>Entregar</button>}</div>
       </div>
-      {helpOpen && <div className="editor-help-panel" id="editor-help"><strong>Como usar</strong><p>{readOnly ? manage ? studentId ? 'Você está visualizando o trabalho do aluno.' : 'Prévia da apostila original.' : 'Apostila entregue. Seu professor poderá reabrir a edição.' : tool === 'text' ? 'Clique uma vez no local da resposta e digite. Depois, o modo Ler volta automaticamente.' : tool === 'highlight' ? 'Clique uma vez no trecho para inserir um destaque.' : selectedNote ? 'Use a alça de cima para mover. Arraste o canto inferior direito ou as alças laterais para ajustar o tamanho da caixa.' : 'Role para ler todas as páginas. Para responder, escolha Escrever resposta.'}</p><p>Fonte e cor alteram a resposta selecionada ou as próximas respostas. Em telas menores, deslize as ferramentas para os lados.</p><button className="text-button" onClick={() => setHelpOpen(false)}>Fechar ajuda</button></div>}
+      {helpOpen && <div className="editor-help-panel" id="editor-help"><strong>Como usar</strong><p>{readOnly ? manage ? studentId ? 'Você está visualizando o trabalho do aluno.' : 'Prévia da apostila original.' : work.data?.document.blockedPages.length === work.data?.document.pageCount ? 'Aguarde a liberação das páginas pelo professor.' : 'Apostila entregue. Seu professor poderá reabrir a edição.' : tool === 'text' ? 'Clique uma vez no local da resposta e digite. Depois, o modo Ler volta automaticamente.' : tool === 'highlight' ? 'Clique uma vez no trecho para inserir um destaque.' : selectedNote ? 'Use a alça de cima para mover. Arraste o canto inferior direito ou as alças laterais para ajustar o tamanho da caixa.' : 'Role para ler todas as páginas. Para responder, escolha Escrever resposta.'}</p><p>Fonte e cor alteram a resposta selecionada ou as próximas respostas. Em telas menores, deslize as ferramentas para os lados.</p><button className="text-button" onClick={() => setHelpOpen(false)}>Fechar ajuda</button></div>}
     </div>
     {(work.error || pdfError) && <p className="error" role="alert">{work.error || pdfError}</p>}
     {work.conflict && <section className="conflict-box"><strong>Há outra versão salva no servidor.</strong><p>Seu rascunho foi preservado. Escolha qual versão deseja continuar usando. Manter o rascunho substituirá a versão atual após sua escolha.</p><button onClick={() => { if (confirm('Substituir as respostas do servidor pelo rascunho desta página?')) void work.resolve(true); }}>Manter meu rascunho</button><button className="secondary" onClick={() => { if (confirm('Descartar este rascunho local e carregar as respostas do servidor?')) void work.resolve(false); }}>Usar versão do servidor</button></section>}
     {work.data?.work?.feedback.length ? <details className="feedback card" id="correcao" open><summary>Correções e feedback</summary>{work.data.work.feedback.map(f => <article key={f.id}><strong>{f.grade !== null ? `Nota: ${f.grade.toLocaleString('pt-BR')} / 10` : 'Comentário do professor'}</strong><p>{f.comment}</p><small>{new Date(f.createdAt).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })}</small></article>)}</details> : null}
-    <div className="pdf-scroll" ref={pdfArea}>{pdf ? <div className="pdf-pages">{Array.from({ length: pdf.numPages }, (_, i) => <PdfPage key={i + 1} pdf={pdf} pageNumber={i + 1} zoom={zoom} availableWidth={availableWidth} controlsHeight={controlsHeight} notes={work.notes.filter(n => n.page === i + 1)} readOnly={readOnly || work.conflict} tool={tool} selected={selected} onSelect={selectNote} update={update} add={addNote} onNavigate={navigate} />)}</div> : <div className="empty"><p>{pdfError || 'Abrindo páginas da apostila…'}</p></div>}</div>
+    <div className="pdf-scroll" ref={pdfArea}>{pdf ? <div className="pdf-pages">{Array.from({ length: pdf.numPages }, (_, i) => <PdfPage key={i + 1} pdf={pdf} pageNumber={i + 1} zoom={zoom} availableWidth={availableWidth} controlsHeight={controlsHeight} availableHeight={availableHeight} blocked={!manage && !!work.data?.document.blockedPages.includes(i + 1)} blockedForStudents={manage && !!work.data?.document.blockedPages.includes(i + 1)} notes={work.notes.filter(n => n.page === i + 1)} readOnly={readOnly || work.conflict || (!manage && !!work.data?.document.blockedPages.includes(i + 1))} tool={tool} selected={selected} onSelect={selectNote} update={update} add={addNote} onNavigate={navigate} />)}</div> : <div className="empty"><p>{pdfError || 'Abrindo páginas da apostila…'}</p></div>}</div>
     {manage && studentId && work.data?.work && <section className="feedback card"><h2>Corrigir trabalho</h2><Form endpoint={`learning/documents/${documentId}/feedback${work.query}`} label="Registrar correção" onSuccess={() => window.location.reload()} transform={d => ({ comment: d.comment, grade: d.grade === '' ? undefined : Number(d.grade), reopen: d.reopen === 'on' })}><label>Feedback para o aluno<textarea name="comment" required maxLength={5000} rows={3} /></label><label>Nota (0 a 10, opcional)<input name="grade" type="number" min="0" max="10" step="0.1" /></label><label className="checkbox-label"><input name="reopen" type="checkbox" />Reabrir a apostila para o aluno continuar</label></Form></section>}
   </main>;
 }

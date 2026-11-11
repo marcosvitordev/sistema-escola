@@ -96,11 +96,12 @@ test('interface conecta o login e a criação de curso ao banco real', async ({ 
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar na plataforma' }).click();
   await expect(page.getByRole('heading', { name: 'Olá, Administrador!' })).toBeVisible();
-  await page.getByRole('button', { name: 'Criar um curso', exact: true }).click();
+  await page.getByRole('button', { name: 'Cursos', exact: true }).click();
+  await page.getByRole('button', { name: 'Novo curso', exact: true }).click();
   await page.getByLabel('Nome do curso').fill('Curso criado pelo navegador');
   await page.getByLabel('Descrição', { exact: true }).fill('Persistência real');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Cadastro salvo');
+  await expect(page.getByRole('status').filter({ hasText: 'Cadastro salvo' })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Cursos', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Curso criado pelo navegador' })).toBeVisible();

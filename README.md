@@ -4,6 +4,8 @@ Aplicação Next.js com App Router, React, TypeScript, API REST e persistência 
 
 ## Executar localmente
 
+O professor também pode editar o PDF individual do aluno, controlar as páginas liberadas à turma e ajustar a visualização por largura, altura ou página inteira. Veja o [guia de controle das apostilas](docs/CONTROLE-DE-APOSTILAS.md).
+
 Requisitos: Node.js 22 ou superior, npm e PostgreSQL (ou Docker Desktop iniciado).
 
 ```powershell

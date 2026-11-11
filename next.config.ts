@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
+  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
   experimental: {
     // Opt-in mode for machines with little disk space; normal development keeps its cache.
     ...(process.env.NEXT_LOW_DISK === '1' ? { turbopackFileSystemCacheForDev: false, turbopackFileSystemCacheForBuild: false } : {}),

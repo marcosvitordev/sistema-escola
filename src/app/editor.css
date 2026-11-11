@@ -75,3 +75,26 @@
   .editor .editor-toolbar .editor-submit { padding: 7px 8px; font-size: 11px; }
   .editor .pdf-scroll { padding: 12px; }
 }
+
+/* Teacher editing and page release controls stay outside the compact toolbar. */
+.pdf-access-panel { margin: 16px 24px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; }
+.pdf-access-panel > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 15px 18px; font-size: 14px; font-weight: 600; color: var(--primary); }
+.pdf-access-panel > summary > span { margin-left: auto; white-space: nowrap; font-size: 12px; }
+.pdf-access-content { padding: 0 18px 18px; }
+.pdf-access-content > p { font-size: 13px; }
+.pdf-access-content > small { display: block; font-size: 12px; line-height: 1.6; margin-top: 12px; }
+.pdf-access-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 9px; max-height: 260px; overflow: auto; padding: 14px 0; margin: 12px 0; border: 0; }
+.pdf-access-grid legend { font-size: 12px; color: var(--muted); }
+.pdf-access-grid label { display: flex; align-items: center; flex-direction: row; gap: 8px; padding: 10px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.pdf-access-grid label.is-blocked { background: var(--bg); color: var(--muted); }
+.pdf-access-grid input { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
+.pdf-access-actions, .pdf-teacher-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pdf-access-actions button, .pdf-teacher-actions button { min-height: 42px; font-size: 13px; }
+.pdf-locked-overlay { position: absolute; inset: 0; z-index: 4; background: var(--surface); display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; gap: 14px; padding: 20px; color: var(--muted); }
+.pdf-locked-overlay strong { color: var(--ink); font-size: 18px; }
+.pdf-locked-overlay p { max-width: 320px; font-size: 14px; margin: 0; }
+.pdf-page-label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.pdf-page-restriction { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.editor .reader-controls select[aria-label=Zoom] { width: 140px; max-width: 140px; }
+.pdf-return-panel > div > strong { display: block; margin: 7px 0; font-size: 14px; }
+@media(max-width:760px) { .pdf-access-panel { margin: 12px; } .pdf-access-panel > summary { padding: 13px; font-size: 12px; } .pdf-access-content { padding: 0 13px 13px; } .pdf-teacher-actions { width: 100%; } .pdf-teacher-actions button { width: 100%; } }

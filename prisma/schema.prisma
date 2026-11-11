@@ -104,6 +104,8 @@ model PdfDocument {
   content Bytes
   sha256 String
   pageCount Int
+  blockedPages Int[] @default([])
+  accessVersion Int @default(0)
   createdAt DateTime @default(now())
   works PdfWork[]
   @@index([lessonId])

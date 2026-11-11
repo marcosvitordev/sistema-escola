@@ -5,10 +5,12 @@ import { db } from '@/lib/db';
 import { allowedRequestOrigin } from '@/lib/request-origin';
 import { currentUser, digest } from '@/lib/auth';
 import { annotationsSchema } from '@/lib/pdf-annotations';
+import { studentPdf, RestrictedPdfBusyError } from '@/lib/pdf-page-access';
 import { exportPdf } from '@/lib/pdf-export';
 import { Prisma } from '@/generated/prisma/client';
 
 export const runtime = 'nodejs';
+class AccessChanged extends Error {}
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const json = (value: unknown, status = 200) => NextResponse.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 function pdfDisposition(title: string, filled = false) {
@@ -65,8 +67,21 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       }
     }
     if (resource !== 'documents' || !id) return fail('Operação não encontrada.', 404);
-    const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess, ...(!manage ? { published: true } : {}) } }, select: { id: true, title: true, pageCount: true, lesson: { select: { classId: true, title: true } } } });
+    const document = await db.pdfDocument.findFirst({ where: { id, lesson: { class: classAccess, ...(!manage ? { published: true } : {}) } }, select: { id: true, title: true, pageCount: true, blockedPages: true, accessVersion: true, lesson: { select: { classId: true, title: true } } } });
     if (!document) return fail('Apostila não encontrada.', 404);
+    if (action === 'access' && req.method === 'GET') return json({ blockedPages: document.blockedPages, accessVersion: document.accessVersion, pageCount: document.pageCount });
+    if (action === 'access' && req.method === 'POST') {
+      if (!manage) return fail('Somente o professor responsável ou administrador pode liberar páginas.', 403);
+      const data = z.object({ accessVersion: z.number().int().min(0), blockedPages: z.array(z.number().int().min(1).max(document.pageCount)).max(document.pageCount) }).parse(await req.json());
+      const blockedPages = [...new Set(data.blockedPages)].sort((a, b) => a - b);
+      const result = await db.$transaction(async tx => {
+        const changed = await tx.pdfDocument.updateMany({ where: { id, accessVersion: data.accessVersion }, data: { blockedPages, accessVersion: { increment: 1 } } });
+        if (!changed.count) return null;
+        await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'pdf-page-access', resourceId: id } });
+        return tx.pdfDocument.findUniqueOrThrow({ where: { id }, select: { blockedPages: true, accessVersion: true, pageCount: true } });
+      });
+      return result ? json(result) : fail('A liberação mudou em outra janela. Atualize antes de salvar.', 409);
+    }
     if (!action && req.method === 'DELETE') {
       if (!manage) return fail('Somente o professor responsável ou administrador pode excluir a apostila.', 403);
       await db.$transaction(async tx => {
@@ -99,10 +114,13 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     }
     const studentId = req.nextUrl.searchParams.get('student') || (!manage ? user.id : null);
     if (!manage && studentId !== user.id) return fail('Acesso não permitido.', 403);
-    if (manage && studentId && !await db.enrollment.findFirst({ where: { classId: document.lesson.classId, studentId } })) return fail('Aluno não encontrado nesta turma.', 404);
+    const enrollment = manage && studentId ? await db.enrollment.findFirst({ where: { classId: document.lesson.classId, studentId }, select: { student: { select: { id: true, name: true } } } }) : null;
+    if (manage && studentId && !enrollment) return fail('Aluno não encontrado nesta turma.', 404);
     if (action === 'file' && req.method === 'GET') {
-      const content = await db.pdfDocument.findUniqueOrThrow({ where: { id }, select: { content: true } });
-      return new NextResponse(new Uint8Array(content.content), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': pdfDisposition(document.title), 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" } });
+      const content = await db.pdfDocument.findUniqueOrThrow({ where: { id }, select: { content: true, sha256: true } });
+      const bytes = manage ? new Uint8Array(content.content) : await studentPdf(content.content, content.sha256, document.blockedPages);
+      if (!manage && (await db.pdfDocument.findUnique({ where: { id }, select: { accessVersion: true } }))?.accessVersion !== document.accessVersion) throw new AccessChanged();
+      return new NextResponse(new Uint8Array(bytes), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': pdfDisposition(document.title), 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" } });
     }
     if (!studentId) {
       if (action === 'work' && req.method === 'GET') return json({ document, work: null, readOnly: true, userId: user.id });
@@ -111,30 +129,47 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
     const key = { documentId_studentId: { documentId: id, studentId } };
     let work = await db.pdfWork.findUnique({ where: key, include: { feedback: { orderBy: { createdAt: 'desc' } } } });
     if (action === 'work' && req.method === 'GET') {
-      if (!work && !manage) {
+      if (!work) {
         try { await db.pdfWork.upsert({ where: key, create: { documentId: id, studentId }, update: {} }); }
         catch (error) { if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error; }
         work = await db.pdfWork.findUniqueOrThrow({ where: key, include: { feedback: { orderBy: { createdAt: 'desc' } } } });
       }
-      return json({ document, work, readOnly: manage || !!work?.submittedAt, userId: user.id });
+      const visibleWork = work && !manage ? { ...work, annotations: annotationsSchema.parse(work.annotations).filter(note => !document.blockedPages.includes(note.page)) } : work;
+      return json({ document, work: visibleWork, readOnly: !manage && (!!work?.submittedAt || document.blockedPages.length === document.pageCount), userId: user.id, targetStudent: enrollment?.student || { id: user.id, name: user.name } });
     }
-    if (action === 'work' && req.method === 'PUT' && !manage) {
-      const data = z.object({ version: z.number().int().min(0), annotations: annotationsSchema }).parse(await req.json());
+    if (action === 'work' && req.method === 'PUT') {
+      const data = z.object({ version: z.number().int().min(0), accessVersion: z.number().int().min(0).default(0), annotations: annotationsSchema }).parse(await req.json());
       if (data.annotations.some(note => note.page > document.pageCount)) return fail('Página inválida.');
       if (!work) return fail('Abra a apostila antes de editar.', 409);
       const result = await db.$transaction(async tx => {
-        const updated = await tx.pdfWork.updateMany({ where: { id: work.id, version: data.version, submittedAt: null }, data: { annotations: data.annotations, version: { increment: 1 } } });
+        let annotations = data.annotations;
+        if (!manage) {
+          // Serialize visibility changes with writes, then preserve answers on hidden pages.
+          const current = await tx.pdfDocument.update({ where: { id }, data: { accessVersion: { increment: 0 } }, select: { accessVersion: true, blockedPages: true } });
+          if (current.accessVersion !== data.accessVersion || current.blockedPages.length === document.pageCount) throw new AccessChanged();
+          if (annotations.some(note => current.blockedPages.includes(note.page))) throw new AccessChanged();
+          const stored = await tx.pdfWork.findUniqueOrThrow({ where: { id: work.id } });
+          const hidden = annotationsSchema.parse(stored.annotations).filter(note => current.blockedPages.includes(note.page));
+          if (annotations.some(note => hidden.some(old => old.id === note.id))) throw new AccessChanged();
+          annotations = annotationsSchema.parse([...hidden, ...annotations]);
+        }
+        const updated = await tx.pdfWork.updateMany({ where: { id: work.id, version: data.version, ...(!manage ? { submittedAt: null } : {}) }, data: { annotations, version: { increment: 1 } } });
         if (!updated.count) return null;
-        await tx.pdfRevision.create({ data: { workId: work.id, version: data.version + 1, annotations: data.annotations } });
+        await tx.pdfRevision.create({ data: { workId: work.id, version: data.version + 1, annotations } });
         await tx.pdfRevision.deleteMany({ where: { workId: work.id, version: { lt: data.version - 19 } } });
+        if (manage) await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'pdf-work-edited', resourceId: work.id } });
         return tx.pdfWork.findUnique({ where: { id: work.id }, select: { version: true, updatedAt: true } });
       });
       if (!result) return fail('A versão mudou ou a apostila já foi entregue. Seu rascunho foi preservado.', 409);
       return json(result);
     }
     if (action === 'submit' && req.method === 'POST' && !manage && work) {
-      const data = z.object({ version: z.number().int().min(0) }).parse(await req.json());
-      const updated = await db.pdfWork.updateMany({ where: { id: work.id, version: data.version, submittedAt: null }, data: { submittedAt: new Date(), version: { increment: 1 } } });
+      const data = z.object({ version: z.number().int().min(0), accessVersion: z.number().int().min(0).default(0) }).parse(await req.json());
+      const updated = await db.$transaction(async tx => {
+        const current = await tx.pdfDocument.update({ where: { id }, data: { accessVersion: { increment: 0 } }, select: { accessVersion: true, blockedPages: true, pageCount: true } });
+        if (current.accessVersion !== data.accessVersion || current.blockedPages.length === current.pageCount) throw new AccessChanged();
+        return tx.pdfWork.updateMany({ where: { id: work.id, version: data.version, submittedAt: null }, data: { submittedAt: new Date(), version: { increment: 1 } } });
+      });
       return updated.count ? json({ ok: true }) : fail('A versão mudou. Reabra a apostila e confira antes de entregar.', 409);
     }
     if (action === 'reopen' && req.method === 'POST') {
@@ -159,14 +194,17 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       return json({ ok: true }, 201);
     }
     if (action === 'export' && req.method === 'GET') {
-      const content = await db.pdfDocument.findUniqueOrThrow({ where: { id }, select: { content: true } });
-      const annotations = annotationsSchema.parse(work?.annotations ?? []);
+      const content = await db.pdfDocument.findUniqueOrThrow({ where: { id }, select: { content: true, sha256: true } });
+      const annotations = annotationsSchema.parse(work?.annotations ?? []).filter(note => manage || !document.blockedPages.includes(note.page));
       let result: Uint8Array;
-      try { result = await exportPdf(content.content, annotations); } catch { return fail('Não foi possível exportar. Utilize texto com caracteres latinos e revise a apostila.', 422); }
+      try { const bytes = manage ? content.content : await studentPdf(content.content, content.sha256, document.blockedPages); result = await exportPdf(bytes, annotations); } catch { return fail('Não foi possível exportar. Utilize texto com caracteres latinos e revise a apostila.', 422); }
+      if (!manage && (await db.pdfDocument.findUnique({ where: { id }, select: { accessVersion: true } }))?.accessVersion !== document.accessVersion) throw new AccessChanged();
       return new NextResponse(new Uint8Array(result), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': pdfDisposition(document.title, true), 'Cache-Control': 'private, no-store' } });
     }
     return fail('Operação não permitida.', 403);
   } catch (error) {
+    if (error instanceof AccessChanged) return NextResponse.json({ error: 'As páginas liberadas mudaram. Reabra a apostila para continuar.', code: 'PAGE_ACCESS_CHANGED' }, { status: 409 });
+    if (error instanceof RestrictedPdfBusyError) return fail(error.message, 503);
     if (error instanceof SyntaxError || error instanceof z.ZodError) return fail('Confira os dados enviados.');
     console.error('Learning API', error instanceof Prisma.PrismaClientKnownRequestError ? { code: error.code, meta: error.meta } : error instanceof Error ? error.name : 'unknown');
     return fail('Não foi possível concluir. Tente novamente.', 500);

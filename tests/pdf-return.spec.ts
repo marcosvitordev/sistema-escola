@@ -51,6 +51,7 @@ test('gestor devolve no acompanhamento, aluno edita e reentrega, professor devol
   const context = await browser.newContext({ baseURL, storageState: await admin.storageState() });
   const page = await context.newPage(); await page.goto(`/turmas/${classId}`);
   await page.getByRole('tab', { name: 'Aulas e apostilas', exact: true }).click();
+  await page.locator('.lesson-card summary').click();
   await page.getByRole('button', { name: 'Acompanhar', exact: true }).click();
   const row = page.getByRole('row').filter({ hasText: 'Teste aluno' });
   await expect(row.getByRole('cell', { name: 'Entregue', exact: true })).toBeVisible();
@@ -98,6 +99,7 @@ test('excluir apostila exige permissao e confirmacao e remove trabalhos e correc
   const context = await browser.newContext({ baseURL, storageState: await teacher.storageState() });
   const page = await context.newPage(); await page.goto(`/turmas/${classId}`);
   await page.getByRole('tab', { name: 'Aulas e apostilas', exact: true }).click();
+  await page.locator('.lesson-card summary').click();
   const button = page.getByRole('button', { name: 'Excluir apostila: apostila-devolucao.pdf', exact: true });
   page.once('dialog', dialog => dialog.dismiss()); await button.click();
   await expect(button).toBeVisible(); expect((await student.get(`${path}/file`)).status()).toBe(200);

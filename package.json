@@ -21,6 +21,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@napi-rs/canvas": "1.0.13",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "bcryptjs": "3.0.3",

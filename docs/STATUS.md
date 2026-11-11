@@ -1,5 +1,15 @@
 # Registro de implementação
 
+## Professor edita PDFs, zoom e liberação de páginas — 11/11/2026
+
+Implementado e publicado na VPS: edição do trabalho individual pelo professor responsável/administrador, inclusive após entrega, com autosave, revisões, auditoria e proteção de versão. A edição preserva a situação de entrega e as notas. Rascunhos de professores são separados por aluno. Zoom com ajuste por largura, altura ou página inteira, percentuais de 25% a 400% e botões de aumentar/diminuir; barra mantida em uma linha.
+
+Controle de páginas por apostila para todos os alunos da turma, com seleção individual, liberar/bloquear todas e confirmação de salvamento. Respostas ocultas são preservadas; alunos conectados consultam alterações a cada cinco segundos e ao retornar à aba. Conteúdo recebido ou baixado anteriormente não pode ser recolhido.
+
+Migração aditiva `20261112010000_pdf_page_access` aplicada localmente e na VPS, preservando apostilas existentes liberadas por padrão. Download e exportação de alunos com bloqueios usam PDF novo renderizado no servidor, sem copiar conteúdo, metadados, anexos ou objetos de destinos do original. Links permitidos são reconstruídos. Detalhes e limites documentados em `CONTROLE-DE-APOSTILAS.md`.
+
+Validação concluída: TypeScript e builds Windows/Linux aprovados. Foram aprovados 22 cenários únicos nas rodadas de testes locais (12 de fundação e 10 de links/exportação/devolução/controle de páginas), mais teste unitário de remoção de dados ocultos, anexos e destinos. Testes antigos foram ajustados à navegação atual da main e às aulas expansíveis. Verificação HTTPS na VPS aprovou edição de entrega, preservação das respostas, zoom, ocultação de conteúdo e respostas no arquivo/exportação, links, bloqueio/liberação com aluno conectado e barra compacta/celular. Capturas inspecionadas; nenhum erro JavaScript nos cenários de produção. Backup anterior à publicação e dados/credenciais temporários removidos ao final. Dados reais preservados.
+
 ## Melhoria visual e de navegação — 04/11/2026
 
 Portal do professor com painel de ações úteis, tipografia mais legível, cartões de turma compactos e atalhos para apostilas, avaliações e aula ao vivo. Busca por turma/curso/professor, cursos e pessoas; mensagens de busca sem resultados com recuperação. Listas de avaliações com busca e filtros de publicação, rascunhos e correções pendentes. Exclusão recebe tratamento visual de ação destrutiva.
