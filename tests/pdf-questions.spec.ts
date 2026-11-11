@@ -64,6 +64,7 @@ test('aluno responde, salva e entrega abaixo do PDF sem receber gabarito antes d
   await section.getByRole('radio', { name: /Teclado$/ }).check();
   await section.getByRole('radio', { name: 'Verdadeiro', exact: true }).check();
   await section.getByRole('textbox').fill('monitor');
+  await expect.poll(() => page.locator('.editor-controls').evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(0);
   await expect(section.getByRole('status')).toHaveText('Todas as respostas salvas');
   page.once('dialog', dialog => dialog.accept()); await section.getByRole('button', { name: 'Entregar atividade', exact: true }).click();
   await expect(section.getByRole('status')).toHaveText('Tentativa entregue');
