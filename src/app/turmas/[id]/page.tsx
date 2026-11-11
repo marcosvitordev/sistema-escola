@@ -15,5 +15,5 @@ export default async function ClassroomPage({ params }: { params: Promise<{ id: 
     db.user.findMany({ where: { institutionId: user.institutionId, role: 'STUDENT', ...(user.role === 'TEACHER' ? { enrollments: { some: { class: { teacherId: user.id } } } } : {}) }, select: person, orderBy: { name: 'asc' } }),
   ]);
   if (!classroom) notFound();
-  return <ClassPage key={classroom.id} initialClassroom={classroom} initialStudents={students} />;
+  return <ClassPage user={{ id: user.id, name: user.name, role: user.role, institution: user.institution.name }} key={classroom.id} initialClassroom={classroom} initialStudents={students} />;
 }

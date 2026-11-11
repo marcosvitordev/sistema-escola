@@ -1,0 +1,97 @@
+.management-brand { text-decoration: none; }
+.sidebar a.nav-item { display: flex; align-items: center; text-decoration: none; }
+.management-breadcrumb { display: flex; align-items: center; min-width: 0; }
+.management-breadcrumb a { color: var(--muted); text-decoration: none; white-space: nowrap; }
+.management-breadcrumb > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.management-breadcrumb .slash { flex-shrink: 0; }
+#management-content { outline: none; min-width: 0; }
+.app-shell .class-page-in-shell { width: 100%; max-width: 1400px; margin: auto; padding: 32px 40px 60px; }
+.app-shell .class-page-in-shell > .class-details { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; display: block; }
+.class-page-in-shell .class-details-heading { padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 18px; }
+.class-page-in-shell .class-details-heading h1 { font-size: 30px; }
+.class-page-in-shell .class-details-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; padding: 6px; gap: 6px; background: var(--surface); border-radius: 12px; }
+.class-page-in-shell .class-details-tabs button { justify-content: center; min-height: 48px; font-size: 13px; }
+.class-page-in-shell .class-details-tabs button[aria-selected=true] { background: var(--soft); box-shadow: none; color: var(--primary); }
+.class-page-in-shell .class-quick-actions { gap: 16px; }
+.class-page-in-shell .class-quick-actions > button { border-radius: 14px; }
+.class-page-in-shell .class-workflow { margin-top: 22px; }
+.pdf-monitor-dialog { width: min(1040px, calc(100vw - 40px)); max-height: 90dvh; padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--surface); box-shadow: 0 24px 100px #102b2340; overscroll-behavior: contain; }
+.pdf-monitor-dialog::backdrop { background: #102b2380; backdrop-filter: blur(3px); }
+.pdf-monitor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 24px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 2; }
+.pdf-monitor-header h2 { font-size: 24px; margin: 9px 0; overflow-wrap: anywhere; }
+.pdf-monitor-header p { font-size: 13px; margin: 0; line-height: 1.6; }
+.pdf-monitor-header .icon-button { flex-shrink: 0; width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 9px; }
+.pdf-monitor-body { padding: 24px; }
+.pdf-monitor-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.pdf-monitor-summary article { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 18px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); }
+.pdf-monitor-summary svg { grid-column: 2; grid-row: 1 / span 2; color: var(--primary); }
+.pdf-monitor-summary strong { font-size: 28px; line-height: 1; }
+.pdf-monitor-summary span { font-size: 12px; color: var(--muted); }
+.pdf-monitor-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.pdf-monitor-tools label { display: flex; flex-direction: row; align-items: center; gap: 10px; flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; color: var(--muted); min-width: 0; }
+.pdf-monitor-tools input { border: 0; min-width: 0; padding: 13px 0; }
+.pdf-monitor-tools label:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.pdf-monitor-tools input:focus-visible { outline: none; }
+.pdf-monitor-tools > button { min-height: 44px; }
+.pdf-monitor-table th { font-size: 11px; }
+.pdf-monitor-table td { font-size: 13px; }
+.pdf-monitor-table td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 140px; }
+.pdf-monitor-table .button-link { min-height: 42px; align-items: center; justify-content: center; font-size: 12px; }
+.pdf-monitor-table tr:last-child td { border-bottom: 0; }
+.pdf-monitor-footer { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 16px 24px; border-top: 1px solid var(--line); background: var(--surface); position: sticky; bottom: 0; }
+.pdf-monitor-footer span { font-size: 12px; color: var(--muted); }
+.pdf-monitor-footer button { min-height: 42px; }
+.student-date-tools { display: grid; grid-template-columns: minmax(180px, 1fr) 180px 210px; align-items: center; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 0 0 20px; }
+.student-date-tools strong { font-size: 16px; }
+.student-date-tools p { margin: 5px 0 0; font-size: 12px; line-height: 1.6; }
+.student-date-tools label { font-size: 12px; }
+.student-date-tools select { font-size: 13px; }
+.student-date-group { margin-bottom: 30px; }
+.student-date-heading { display: flex; align-items: center; gap: 12px; margin: 22px 0 15px; }
+.student-date-heading h2 { font-size: 19px; line-height: 1.4; margin: 0; }
+.student-date-heading > span:last-child { margin-left: auto; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.student-date-marker { width: 9px; height: 9px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 0 5px var(--soft); flex-shrink: 0; margin-left: 5px; }
+.student-resource h3 { font-size: 19px; line-height: 1.5; letter-spacing: -.3px; margin: 9px 0; overflow-wrap: anywhere; }
+.student-resource-date { display: block; color: var(--primary); font-size: 12px; margin: 3px 0 12px; }
+.student-resource-grid { align-items: stretch; }
+.student-date-group .student-resource { border-radius: 14px; }
+@media(max-width:1100px) { .student-date-tools { grid-template-columns: 1fr 1fr; } .student-date-tools > div { grid-column: 1 / -1; } .app-shell .class-page-in-shell { padding: 28px 25px 50px; } }
+@media(max-width:760px) {
+  .app-shell .class-page-in-shell { padding: 22px 16px 40px; }
+  .class-page-in-shell .class-details-heading { padding: 20px 18px; }
+  .class-page-in-shell .class-details-heading h1 { font-size: 25px; }
+  .class-page-in-shell .class-details-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .class-page-in-shell .class-details-tabs button { font-size: 12px; }
+  .management-breadcrumb { max-width: calc(100vw - 90px); font-size: 11px; }
+  .management-breadcrumb .slash { margin: 0 9px; }
+  .pdf-monitor-dialog { width: calc(100vw - 16px); max-height: 94dvh; border-radius: 14px; }
+  .pdf-monitor-header { padding: 18px 16px; gap: 12px; }
+  .pdf-monitor-header h2 { font-size: 20px; }
+  .pdf-monitor-header p { font-size: 12px; }
+  .pdf-monitor-body { padding: 16px; }
+  .pdf-monitor-summary { gap: 7px; }
+  .pdf-monitor-summary article { padding: 13px 9px; display: flex; flex-direction: column; gap: 8px; }
+  .pdf-monitor-summary strong { font-size: 25px; }
+  .pdf-monitor-summary span { font-size: 11px; line-height: 1.4; }
+  .pdf-monitor-summary svg { width: 18px; }
+  .pdf-monitor-tools { flex-wrap: wrap; }
+  .pdf-monitor-tools label { flex-basis: 100%; }
+  .pdf-monitor-tools > button { margin-left: auto; }
+  .pdf-monitor-table, .pdf-monitor-table tbody { display: block; width: 100%; white-space: normal; }
+  .pdf-monitor-table thead { display: none; }
+  .pdf-monitor-table tr { display: block; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
+  .pdf-monitor-table td { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; width: 100%; padding: 10px 0; border: 0; }
+  .pdf-monitor-table td::before { content: attr(data-label); font-size: 12px; color: var(--muted); }
+  .pdf-monitor-table td:first-child::before { display: none; }
+  .pdf-monitor-table td:first-child strong { font-size: 15px; }
+  .pdf-monitor-table td:last-child::before { display: none; }
+  .pdf-monitor-table .pdf-work-actions, .pdf-monitor-table .pdf-return-action { width: 100%; }
+  .pdf-monitor-table .button-link, .pdf-monitor-table .pdf-return-action button { width: 100%; }
+  .pdf-monitor-footer { padding: 14px 16px; }
+  .student-date-tools { padding: 16px; gap: 14px 10px; }
+  .student-date-tools select { font-size: 12px; padding: 10px; }
+  .student-date-heading { flex-wrap: wrap; gap: 9px; }
+  .student-date-heading h2 { font-size: 17px; max-width: calc(100% - 30px); }
+  .student-date-heading > span:last-child { width: calc(100% - 26px); margin-left: 26px; font-size: 11px; }
+  .student-resource h3 { font-size: 20px; }
+}

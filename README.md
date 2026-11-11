@@ -35,9 +35,13 @@ Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pes
 
 ## Detalhes da turma
 
+A turma usa o mesmo sidebar e cabeçalho do painel principal, com as seções em abas acima do conteúdo. **Acompanhar** abre uma janela com resumo das entregas, busca por aluno e filtros de situação. Nela é possível abrir o trabalho individual ou devolver uma apostila para ajustes; Escape ou Fechar retorna à turma.
+
 Ao abrir uma turma no painel de gestão, a página `/turmas/[id]` reúne as seções **Resumo**, **Alunos**, **Aulas e apostilas** e **Provas e atividades**. O resumo reúne os acessos principais. Em Alunos, é possível buscar, cadastrar um novo aluno diretamente na turma ou matricular alguém já cadastrado. As aulas têm busca por título/módulo, apostilas separadas e indicação de rascunho/publicação. Avaliações podem ser criadas e consultadas na própria seção. Os formulários em andamento permanecem ao trocar de seção na mesma página. A página tem acesso por link direto, recarregamento normal e botão para voltar às turmas; é restrita aos gestores autorizados da turma.
 
 ## Área simplificada do aluno
+
+As listas de apostilas e avaliações são separadas por dia, com filtro de mês e ordenação das mais recentes ou mais antigas. Apostilas usam a data da aula (ou de inclusão); avaliações usam o prazo de entrega, seguido da data da aula ou de inclusão quando não houver prazo. As datas seguem o horário do Acre. O mês e a ordem ficam na URL para manter a seleção ao recarregar.
 
 O aluno tem um início próprio, separado do painel de gestão. Os acessos principais são **Apostilas**, **Provas e atividades** e **Minhas correções**. No celular, ficam em uma barra de navegação na parte inferior da tela, com botões grandes e nomes curtos.
 

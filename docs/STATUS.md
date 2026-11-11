@@ -1,5 +1,13 @@
 # Registro de implementação
 
+## Navegação da turma e organização do aluno — 11/11/2026
+
+Detalhes da turma agora abre como página junto ao sidebar principal compartilhado, sem drawer ou navegação lateral duplicada. Mantém as abas, permissões, formulários e links diretos das seções. O acompanhamento das apostilas abre em diálogo próprio com resumo, busca de alunos, filtros de situação, edição individual e devolução de entregas; possui fechamento por Escape e disposição em cartões no celular.
+
+Na área do aluno, apostilas e avaliações são agrupadas por data, com filtro de mês e ordem crescente/decrescente persistidos na URL. Datas da aula e inclusão estão nos cartões; avaliações são agrupadas prioritariamente pelo prazo. Usa o fuso do Acre e preserva o acesso apenas aos conteúdos publicados das próprias matrículas.
+
+Validação: TypeScript/build aprovados; testes de datas cobrem limite de dia no Acre, meses e ordenação. Foram aprovados os 12 cenários de fundação, nove de avaliações, três de questões JSON no PDF, três de devolução/exclusão e dois novos cenários de navegação/diálogo/filtros por data. Telas revisadas em desktop e 390 px; corrigido o excesso de largura do contador por data no celular.
+
 ## Questões JSON abaixo das apostilas — 11/11/2026
 
 Importação por arquivo ou texto, prévia, modelo para baixar e instruções dentro do sistema. Suporta os oito tipos de questão, formato em português e gabaritos numéricos iniciados em 1. Importa como rascunho para revisão/publicação. A importação pode partir do PDF ou da turma, com vínculo opcional a uma apostila.

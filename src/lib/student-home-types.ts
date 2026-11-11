@@ -2,12 +2,12 @@ export type StudentArea = 'inicio' | 'apostilas' | 'atividades' | 'correcoes';
 export type StudentIdentity = { id: string; name: string; institution: string; mustChangePassword: boolean };
 export type StudentClass = { id: string; name: string; course: string; teacher: string };
 export type StudentMaterial = {
-  id: string; title: string; pageCount: number; classId: string; lessonTitle: string; module: string; createdAt: string;
+  id: string; title: string; pageCount: number; classId: string; lessonTitle: string; module: string; createdAt: string; scheduledAt?: string | null;
   work: { version: number; updatedAt: string; submittedAt: string | null; feedback: { id: string; grade: number | null; createdAt: string } | null } | null;
 };
 export type StudentAssessment = {
   id: string; title: string; kind: 'TEST' | 'ACTIVITY'; classId: string; lessonTitle: string;
-  dueAt: string | null; maxAttempts: number; gradesReleased: boolean; questionCount: number;
+  scheduledAt?: string | null; createdAt?: string; dueAt: string | null; maxAttempts: number; gradesReleased: boolean; questionCount: number;
   attempts: { id: string; number: number; submittedAt: string | null; gradedAt: string | null; updatedAt: string }[];
 };
 export type StudentHomeData = { classes: StudentClass[]; materials: StudentMaterial[]; assessments: StudentAssessment[] };
