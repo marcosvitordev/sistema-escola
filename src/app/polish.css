@@ -1,0 +1,296 @@
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+summary {
+  transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled),
+a.button-link:active {
+  transform: translateY(0);
+}
+
+.error,
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.error {
+  border: 1px solid #e8c1bc;
+  background: #fff5f3;
+  color: #8e3028;
+}
+
+.notice {
+  border: 1px solid #b9d8c4;
+  background: var(--soft);
+  color: var(--primary);
+}
+
+.error .text-button,
+.notice .icon-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.app-shell .content,
+.class-page,
+.assessment-page {
+  animation: page-enter .3s ease both;
+}
+
+.class-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  background: #102b2366;
+  backdrop-filter: blur(3px);
+}
+
+.class-drawer {
+  width: min(860px, 94vw);
+  height: 100%;
+  overflow: auto;
+  background: var(--bg);
+  box-shadow: -18px 0 50px #102b2330;
+  animation: drawer-enter .25s ease both;
+}
+
+.class-drawer-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.class-drawer-header h2 {
+  margin: 5px 0 0;
+  font-size: 19px;
+}
+
+.class-drawer .class-details {
+  max-width: none;
+  padding: 24px 28px 50px;
+}
+
+.class-drawer .class-details-heading {
+  display: none;
+}
+
+@keyframes drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.app-shell .sidebar {
+  box-shadow: 8px 0 24px #173c2b05;
+}
+
+.app-shell .topbar {
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.app-shell .card,
+.app-shell .class-card,
+.class-page > .class-details,
+.assessment-page > section,
+.student-resource,
+.student-progress,
+.student-shortcut {
+  box-shadow: 0 8px 28px #173c2b07;
+}
+
+.student-area {
+  --student-radius: 14px;
+}
+
+.student-header {
+  box-shadow: 0 2px 14px #173c2b06;
+}
+
+.student-nav button:hover:not([aria-pressed=true]) {
+  background: var(--bg);
+  color: var(--primary);
+}
+
+.student-main {
+  animation: page-enter .3s ease both;
+}
+
+.student-page-intro {
+  padding-bottom: 4px;
+}
+
+.student-resource-grid {
+  gap: 16px;
+}
+
+.student-resource {
+  border-radius: var(--student-radius);
+  padding: 20px;
+}
+
+.student-resource:hover {
+  border-color: #9dc9b2;
+  box-shadow: 0 12px 30px #173c2b10;
+  transform: translateY(-2px);
+}
+
+.student-resource h2 {
+  line-height: 1.3;
+}
+
+.student-resource-action {
+  border-radius: 9px;
+}
+
+.student-list-tools {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.student-search {
+  border: 0;
+  background: transparent;
+}
+
+.student-search:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.student-empty,
+.class-empty-state,
+.empty {
+  background: linear-gradient(145deg, var(--surface), var(--bg));
+}
+
+.student-help {
+  border-radius: var(--student-radius);
+}
+
+.class-details-tabs button,
+.resource-filters button {
+  min-height: 44px;
+}
+
+.class-page .class-section-intro {
+  padding-bottom: 4px;
+}
+
+.class-page .class-student-search input,
+.class-page .class-lesson-search input,
+.lesson-toolbar input,
+.lesson-toolbar select {
+  box-shadow: 0 2px 8px #173c2b05;
+}
+
+.access {
+  background:
+    radial-gradient(circle at 15% 15%, #dceee4 0, transparent 34%),
+    radial-gradient(circle at 85% 85%, #edf4ef 0, transparent 32%),
+    var(--bg);
+}
+
+.access .card {
+  border-radius: 18px;
+  box-shadow: 0 20px 60px #173c2b12;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .class-drawer {
+    width: 100%;
+  }
+
+  .class-drawer-header {
+    padding: 15px 16px;
+  }
+
+  .class-drawer .class-details {
+    padding: 18px 16px 45px;
+  }
+
+  .error,
+  .notice {
+    align-items: flex-start;
+    font-size: 12px;
+  }
+
+  .app-shell .card,
+  .app-shell .class-card,
+  .class-page > .class-details,
+  .student-resource {
+    box-shadow: 0 5px 18px #173c2b06;
+  }
+
+  .student-list-tools {
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .student-resource:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
