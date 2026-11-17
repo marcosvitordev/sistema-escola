@@ -6,6 +6,7 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: 'escola_test' }) });
+const baseURL = process.env.PLAYWRIGHT_TEST_URL || 'http://localhost:3001';
 const slug = `portal-${randomUUID().slice(0, 8)}`, password = 'SenhaPortal123!';
 let teacher: APIRequestContext, student: APIRequestContext;
 let classId: string;
@@ -20,7 +21,7 @@ test.beforeAll(async () => {
   await db.user.create({ data: { institutionId: institution.id, name: 'Ana Aluna', username: 'aluno', role: 'STUDENT', passwordHash, mustChangePassword: false, enrollments: { create: { classId } } } });
   await db.user.create({ data: { institutionId: institution.id, name: 'Bruno Aluno', username: 'bruno', role: 'STUDENT', passwordHash, mustChangePassword: false, enrollments: { create: { classId } } } });
   [teacher, student] = await Promise.all(['professor', 'aluno'].map(async username => {
-    const context = await request.newContext({ baseURL: 'http://localhost:3001' });
+    const context = await request.newContext({ baseURL });
     expect((await context.post('/api/login', { data: { institution: slug, username, password } })).status()).toBe(200); return context;
   }));
   const pdf = await PDFDocument.create(); pdf.addPage();
@@ -33,7 +34,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => { await Promise.all([teacher?.dispose(), student?.dispose()]); await db.$disconnect(); });
 
 test('turma usa sidebar principal e acompanhamento abre em janela pesquisável', async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: 'http://localhost:3001', storageState: await teacher.storageState(), viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({ baseURL, storageState: await teacher.storageState(), viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage(); await page.goto('/?painel=classes');
   await page.getByRole('link', { name: 'Abrir turma', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/turmas/${classId}`));
@@ -67,7 +68,7 @@ test('aluno encontra apostilas e avaliações por mês e data, com filtros persi
   const payload = await (await student.get('/api/student/home')).json();
   expect(payload.materials.every((item: { scheduledAt: string }) => item.scheduledAt)).toBe(true);
   expect(JSON.stringify(payload)).not.toContain('passwordHash');
-  const context = await browser.newContext({ baseURL: 'http://localhost:3001', storageState: await student.storageState(), viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({ baseURL, storageState: await student.storageState(), viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage(); await page.goto('/?area=apostilas');
   await expect(page.locator('.student-date-group')).toHaveCount(2);
   await expect(page.locator('.student-date-group').first()).toContainText('Editor de textos');
@@ -90,5 +91,51 @@ test('aluno encontra apostilas e avaliações por mês e data, com filtros persi
   await expect(page.locator('.student-resource')).toHaveCount(1);
   await expect(page.locator('.student-resource')).toContainText('Atividade: Editor de textos');
   await page.screenshot({ path: 'test-results/portal-avaliacoes-mobile.png', fullPage: true });
+  await context.close();
+});
+
+test('professor edita os quatro campos, remove data e preserva os vínculos da aula', async ({ browser }) => {
+  const lesson = await db.lesson.findFirstOrThrow({ where: { classId, title: 'Editor de textos' }, include: { documents: true, assessments: true, class: { include: { course: true } } } });
+  const endpoint = `/api/learning/lessons/${lesson.id}/edit`;
+  const fields = { title: 'Editor atualizado', module: 'Produção de textos', description: 'Descrição revisada para a próxima aula.', scheduledAt: '2026-11-23' };
+  expect((await student.post(endpoint, { data: fields })).status()).toBe(403);
+  expect((await teacher.post(endpoint, { data: fields, headers: { Origin: 'https://externo.example' } })).status()).toBe(403);
+  const stranger = await db.user.create({ data: { institutionId: lesson.class.course.institutionId, name: 'Outro professor', username: `outro-${randomUUID()}`, role: 'TEACHER', passwordHash: await hash(password, 12), mustChangePassword: false } });
+  const other = await request.newContext({ baseURL });
+  await other.post('/api/login', { data: { institution: slug, username: stranger.username, password } });
+  expect((await other.post(endpoint, { data: fields })).status()).toBe(404); await other.dispose();
+  for (const invalid of [{ ...fields, scheduledAt: '2026-02-30' }, { ...fields, title: ' ' }, { ...fields, module: '' }, { ...fields, classId: 'outra-turma' }, { ...fields, published: false }]) expect((await teacher.post(endpoint, { data: invalid })).status()).toBe(400);
+  const context = await browser.newContext({ baseURL, storageState: await teacher.storageState(), viewport: { width: 390, height: 844 } });
+  const page = await context.newPage(); await page.goto(`/turmas/${classId}?secao=lessons`);
+  const card = page.locator('.lesson-card').filter({ has: page.locator('summary', { hasText: 'Editor de textos' }) });
+  await card.locator('summary').click(); await card.getByRole('button', { name: 'Editar aula: Editor de textos', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Editar aula', exact: true });
+  await expect(form.getByLabel('Título da aula', { exact: true })).toHaveValue('Editor de textos');
+  await expect(form.getByLabel('Data prevista', { exact: false })).toHaveValue('2026-11-10');
+  await form.getByLabel('Título da aula', { exact: true }).fill('Alteração cancelada');
+  await form.getByRole('button', { name: 'Cancelar edição' }).click();
+  await expect(card.locator('summary')).toContainText('Editor de textos');
+  await card.getByRole('button', { name: 'Editar aula: Editor de textos', exact: true }).click();
+  await form.getByLabel('Título da aula', { exact: true }).fill(fields.title);
+  await form.getByLabel('Módulo', { exact: true }).fill(fields.module);
+  await form.getByLabel('Descrição', { exact: true }).fill(fields.description);
+  await form.getByLabel('Data prevista', { exact: false }).fill(fields.scheduledAt);
+  await page.screenshot({ path: 'test-results/editar-aula-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await form.getByRole('button', { name: 'Salvar alterações' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Aula atualizada com sucesso.' })).toBeVisible();
+  await page.reload();
+  const updatedCard = page.locator('.lesson-card').filter({ has: page.locator('summary', { hasText: fields.title }) });
+  await expect(updatedCard.locator('summary')).toContainText('23/11/2026'); await updatedCard.locator('summary').click();
+  await expect(updatedCard).toContainText(fields.description); await expect(updatedCard.getByRole('link', { name: 'Abrir apostila' })).toHaveAttribute('href', `/apostilas/${lesson.documents[0].id}`);
+  const saved = await db.lesson.findUniqueOrThrow({ where: { id: lesson.id }, include: { documents: true, assessments: true } });
+  expect(saved.published).toBe(true); expect(saved.documents.map(item => item.id)).toEqual(lesson.documents.map(item => item.id)); expect(saved.assessments.map(item => item.id)).toEqual(lesson.assessments.map(item => item.id));
+  const home = await (await student.get('/api/student/home')).json();
+  expect(home.materials.find((item: { id: string }) => item.id === lesson.documents[0].id)).toMatchObject({ lessonTitle: fields.title, scheduledAt: '2026-11-23T17:00:00.000Z' });
+  await updatedCard.getByRole('button', { name: `Editar aula: ${fields.title}`, exact: true }).click();
+  await form.getByLabel('Data prevista', { exact: false }).fill(''); await form.getByLabel('Descrição', { exact: true }).fill('');
+  await form.getByRole('button', { name: 'Salvar alterações' }).click(); await expect(form).toHaveCount(0);
+  expect(await db.lesson.findUniqueOrThrow({ where: { id: lesson.id } })).toMatchObject({ scheduledAt: null, description: '' });
+  expect(await db.auditLog.count({ where: { action: 'lesson-edited', resourceId: lesson.id } })).toBe(2);
   await context.close();
 });

@@ -35,6 +35,8 @@ Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pes
 
 ## Detalhes da turma
 
+Para editar uma aula, abra **Aulas e apostilas → expanda a aula → Editar aula**. Altere **Título da aula**, **Módulo**, **Descrição** e **Data prevista**, depois selecione **Salvar alterações**. A data e a descrição podem ficar vazias. **Cancelar edição** descarta as alterações do formulário. A edição mantém a publicação, as apostilas, avaliações, respostas e entregas da aula.
+
 A turma usa o mesmo sidebar e cabeçalho do painel principal, com as seções em abas acima do conteúdo. **Acompanhar** abre uma janela com resumo das entregas, busca por aluno e filtros de situação. Nela é possível abrir o trabalho individual ou devolver uma apostila para ajustes; Escape ou Fechar retorna à turma.
 
 Ao abrir uma turma no painel de gestão, a página `/turmas/[id]` reúne as seções **Resumo**, **Alunos**, **Aulas e apostilas** e **Provas e atividades**. O resumo reúne os acessos principais. Em Alunos, é possível buscar, cadastrar um novo aluno diretamente na turma ou matricular alguém já cadastrado. As aulas têm busca por título/módulo, apostilas separadas e indicação de rascunho/publicação. Avaliações podem ser criadas e consultadas na própria seção. Os formulários em andamento permanecem ao trocar de seção na mesma página. A página tem acesso por link direto, recarregamento normal e botão para voltar às turmas; é restrita aos gestores autorizados da turma.

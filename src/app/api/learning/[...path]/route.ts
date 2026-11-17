@@ -8,6 +8,7 @@ import { annotationsSchema } from '@/lib/pdf-annotations';
 import { studentPdf, RestrictedPdfBusyError } from '@/lib/pdf-page-access';
 import { exportPdf } from '@/lib/pdf-export';
 import { Prisma } from '@/generated/prisma/client';
+import { lessonDate, lessonFields } from '@/lib/lesson-fields';
 
 export const runtime = 'nodejs';
 class AccessChanged extends Error {}
@@ -38,15 +39,24 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       return json({ classroom, lessons });
     }
     if (resource === 'lessons' && !id && req.method === 'POST' && manage) {
-      const data = z.object({ classId: z.string(), title: z.string().trim().min(3).max(150), module: z.string().trim().min(1).max(100), description: z.string().max(3000).default(''), scheduledAt: z.string().optional() }).parse(await req.json());
+      const data = lessonFields.extend({ classId: z.string() }).parse(await req.json());
       if (!await db.class.findFirst({ where: { id: data.classId, ...classAccess } })) return fail('Turma não encontrada.', 404);
-      const scheduledAt = data.scheduledAt ? new Date(`${data.scheduledAt}T12:00:00-05:00`) : null;
-      if (scheduledAt && Number.isNaN(scheduledAt.getTime())) return fail('Data inválida.');
+      const scheduledAt = lessonDate(data.scheduledAt);
       return json(await db.lesson.create({ data: { ...data, scheduledAt } }), 201);
     }
+    if (resource === 'lessons' && id && action === 'edit' && !manage) return fail('Somente o professor responsável ou administrador pode editar a aula.', 403);
     if (resource === 'lessons' && id && manage) {
       const lesson = await db.lesson.findFirst({ where: { id, class: classAccess } });
       if (!lesson) return fail('Aula não encontrada.', 404);
+      if (action === 'edit' && req.method === 'POST') {
+        const data = lessonFields.strict().parse(await req.json());
+        const updated = await db.$transaction(async tx => {
+          const result = await tx.lesson.update({ where: { id }, data: { ...data, scheduledAt: lessonDate(data.scheduledAt) } });
+          await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'lesson-edited', resourceId: id } });
+          return result;
+        });
+        return json(updated);
+      }
       if (action === 'publish' && req.method === 'POST') {
         const data = z.object({ published: z.boolean() }).parse(await req.json());
         await db.lesson.update({ where: { id }, data });

@@ -5,7 +5,7 @@ import { PDFDocument } from 'pdf-lib';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: 'escola_test' }) });
-const baseURL = 'http://localhost:3001';
+const baseURL = process.env.PLAYWRIGHT_TEST_URL || 'http://localhost:3001';
 const password = 'SenhaDevolucao123!';
 const slug = `devolver-pdf-${randomUUID().slice(0, 8)}`;
 let admin: APIRequestContext, teacher: APIRequestContext, student: APIRequestContext, outsider: APIRequestContext;

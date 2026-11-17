@@ -1,5 +1,13 @@
 # Registro de implementação
 
+## Edição de aulas — 16/11/2026
+
+Botão Editar aula dentro da aula expandida, com título, módulo, descrição e data prevista preenchidos. Permite cancelar, limpar descrição/data e salvar com validação de limites e datas reais. Data armazenada ao meio-dia no Acre, de forma consistente com o cadastro e a organização do aluno. A edição mantém o estado de publicação e todos os vínculos da aula, sem migração de banco.
+
+Endpoint restrito ao administrador da instituição ou professor responsável, valida origem e recusa alterações em campos extras. Alterações gravadas em transação com auditoria lesson-edited. Formulário adaptado ao celular, com confirmação de salvamento e erros recuperáveis.
+
+Validação: build/TypeScript aprovados; cenários de navegação/filtros e devolução/exclusão de PDF aprovados. Novo teste cobre edição, cancelamento, recarregamento, limpeza de data/descrição, acesso negado a aluno/professor externo/origem externa, datas inválidas, preservação de vínculos/publicação e atualização do aluno. Revisão visual em 390 px sem excesso de largura. O build também apresentou a recomendação de atualização de segurança do Next.js; a versão das dependências não foi alterada nesta funcionalidade.
+
 ## Navegação da turma e organização do aluno — 11/11/2026
 
 Detalhes da turma agora abre como página junto ao sidebar principal compartilhado, sem drawer ou navegação lateral duplicada. Mantém as abas, permissões, formulários e links diretos das seções. O acompanhamento das apostilas abre em diálogo próprio com resumo, busca de alunos, filtros de situação, edição individual e devolução de entregas; possui fechamento por Escape e disposição em cartões no celular.
