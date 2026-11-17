@@ -35,6 +35,8 @@ Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pes
 
 ## Detalhes da turma
 
+**Excluir aula**, dentro da aula expandida, exige confirmação e apaga a aula com suas apostilas, provas, atividades, respostas, entregas e correções. A confirmação informa essa consequência. Apenas o administrador da instituição ou professor responsável pode excluir; as demais aulas são preservadas.
+
 Para editar uma aula, abra **Aulas e apostilas → expanda a aula → Editar aula**. Altere **Título da aula**, **Módulo**, **Descrição** e **Data prevista**, depois selecione **Salvar alterações**. A data e a descrição podem ficar vazias. **Cancelar edição** descarta as alterações do formulário. A edição mantém a publicação, as apostilas, avaliações, respostas e entregas da aula.
 
 A turma usa o mesmo sidebar e cabeçalho do painel principal, com as seções em abas acima do conteúdo. **Acompanhar** abre uma janela com resumo das entregas, busca por aluno e filtros de situação. Nela é possível abrir o trabalho individual ou devolver uma apostila para ajustes; Escape ou Fechar retorna à turma.

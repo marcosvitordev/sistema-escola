@@ -1,5 +1,11 @@
 # Registro de implementação
 
+## Exclusão de aulas — 16/11/2026
+
+Botão Excluir aula junto às ações da aula, com confirmação que informa a remoção das apostilas, avaliações, respostas, arquivos de tentativas, entregas e correções vinculadas. Cancela sem alterar dados. A exclusão usa transação com bloqueios dos registros envolvidos e auditoria lesson-deleted, protegida por instituição, professor responsável e origem. Preserva as demais aulas e remove o conteúdo da área do aluno. Não exige migração de banco.
+
+Build/TypeScript aprovados e sete cenários de navegador/API aprovados, incluindo edição, exclusão de aula vazia e preenchida, cancelamento, permissões, limpeza de trabalhos/revisões/correções/tentativas/arquivos/questões, auditoria e preservação de outra aula da mesma turma.
+
 ## Edição de aulas — 16/11/2026
 
 Botão Editar aula dentro da aula expandida, com título, módulo, descrição e data prevista preenchidos. Permite cancelar, limpar descrição/data e salvar com validação de limites e datas reais. Data armazenada ao meio-dia no Acre, de forma consistente com o cadastro e a organização do aluno. A edição mantém o estado de publicação e todos os vínculos da aula, sem migração de banco.

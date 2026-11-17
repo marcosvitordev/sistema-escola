@@ -45,9 +45,35 @@ async function handler(req: NextRequest, context: { params: Promise<{ path: stri
       return json(await db.lesson.create({ data: { ...data, scheduledAt } }), 201);
     }
     if (resource === 'lessons' && id && action === 'edit' && !manage) return fail('Somente o professor responsável ou administrador pode editar a aula.', 403);
+    if (resource === 'lessons' && id && !action && req.method === 'DELETE' && !manage) return fail('Somente o professor responsável ou administrador pode excluir a aula.', 403);
     if (resource === 'lessons' && id && manage) {
       const lesson = await db.lesson.findFirst({ where: { id, class: classAccess } });
       if (!lesson) return fail('Aula não encontrada.', 404);
+      if (!action && req.method === 'DELETE') {
+        const removed = await db.$transaction(async tx => {
+          const schema = new URL(process.env.DATABASE_URL!).searchParams.get('schema') ?? 'escola';
+          await tx.$queryRaw`SELECT set_config('search_path', ${`"${schema.replaceAll('"', '""')}"`}, true)`;
+          const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Lesson" WHERE id = ${id} FOR UPDATE`;
+          if (!rows.length) return false;
+          await tx.$queryRaw`SELECT id FROM "PdfDocument" WHERE "lessonId" = ${id} ORDER BY id FOR UPDATE`;
+          await tx.$queryRaw`SELECT w.id FROM "PdfWork" w JOIN "PdfDocument" d ON d.id = w."documentId" WHERE d."lessonId" = ${id} ORDER BY w.id FOR UPDATE OF w`;
+          await tx.$queryRaw`SELECT id FROM "Assessment" WHERE "lessonId" = ${id} ORDER BY id FOR UPDATE`;
+          await tx.$queryRaw`SELECT a.id FROM "AssessmentAttempt" a JOIN "Assessment" s ON s.id = a."assessmentId" WHERE s."lessonId" = ${id} ORDER BY a.id FOR UPDATE OF a`;
+          const work = { document: { lessonId: id } };
+          const assessment = { lessonId: id };
+          await tx.pdfFeedback.deleteMany({ where: { work } });
+          await tx.pdfRevision.deleteMany({ where: { work } });
+          await tx.pdfWork.deleteMany({ where: { document: { lessonId: id } } });
+          await tx.assessmentFile.deleteMany({ where: { assessment } });
+          await tx.assessmentAttempt.deleteMany({ where: { assessment } });
+          await tx.assessment.deleteMany({ where: { lessonId: id } });
+          await tx.pdfDocument.deleteMany({ where: { lessonId: id } });
+          await tx.lesson.delete({ where: { id } });
+          await tx.auditLog.create({ data: { institutionId: user.institutionId, actorId: user.id, action: 'lesson-deleted', resourceId: id } });
+          return true;
+        });
+        return removed ? json({ ok: true }) : fail('Aula não encontrada.', 404);
+      }
       if (action === 'edit' && req.method === 'POST') {
         const data = lessonFields.strict().parse(await req.json());
         const updated = await db.$transaction(async tx => {
