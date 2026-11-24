@@ -6,6 +6,7 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { questionsJsonExample } from '../src/lib/questions-json';
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: 'escola_test' }) });
+const baseURL = process.env.PLAYWRIGHT_TEST_URL || 'http://localhost:3001';
 const slug = `json-${randomUUID().slice(0, 8)}`, password = 'SenhaJson123!';
 let teacher: APIRequestContext, student: APIRequestContext, outsider: APIRequestContext;
 let docId: string, classId: string, lessonId: string, itemId: string;
@@ -21,7 +22,7 @@ test.beforeAll(async () => {
   const classroom = await db.class.create({ data: { courseId: course.id, teacherId: professor.id, name: 'Turma JSON' } }); classId = classroom.id;
   await db.user.create({ data: { institutionId: institution.id, name: 'Aluno JSON', username: 'aluno', role: 'STUDENT', passwordHash, mustChangePassword: false, enrollments: { create: { classId } } } });
   const lesson = await db.lesson.create({ data: { classId, title: 'Aula do JSON', published: true } }); lessonId = lesson.id;
-  [teacher, student, outsider] = await Promise.all(['professor', 'aluno', 'outro'].map(async username => { const context = await request.newContext({ baseURL: 'http://localhost:3001' }); expect((await context.post('/api/login', { data: { institution: slug, username, password } })).status()).toBe(200); return context; }));
+  [teacher, student, outsider] = await Promise.all(['professor', 'aluno', 'outro'].map(async username => { const context = await request.newContext({ baseURL }); expect((await context.post('/api/login', { data: { institution: slug, username, password } })).status()).toBe(200); return context; }));
   const pdf = await PDFDocument.create(); pdf.addPage();
   const upload = await teacher.post(`/api/learning/lessons/${lessonId}/documents`, { multipart: { file: { name: 'Apostila para JSON.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await pdf.save()) } } }); docId = (await upload.json()).id;
 });
@@ -35,11 +36,11 @@ test('importação exige professor responsável, valida tudo e mantém rascunho 
   expect((await teacher.post(endpoint, { data: { source: { ...source, questoes: [{ ...source.questoes[0], resposta_correta: 99 }] } } })).status()).toBe(400);
   expect(await db.assessment.count({ where: { documentId: docId } })).toBe(0);
   const context = await browser.newContext({ storageState: await student.storageState() });
-  const learner = await context.newPage(); await learner.goto(`http://localhost:3001/apostilas/${docId}`);
+  const learner = await context.newPage(); await learner.goto(`${baseURL}/apostilas/${docId}`);
   await expect(learner.locator('[data-testid="pdf-page"]')).toHaveCount(1);
   await expect(learner.getByRole('region', { name: 'Questões da apostila', exact: true })).toHaveCount(0);
   const host = await browser.newContext({ storageState: await teacher.storageState() });
-  const page = await host.newPage(); await page.goto(`http://localhost:3001/apostilas/${docId}`);
+  const page = await host.newPage(); await page.goto(`${baseURL}/apostilas/${docId}`);
   await page.getByRole('button', { name: 'Importar questões JSON', exact: true }).click();
   await page.getByLabel('Selecionar arquivo JSON').setInputFiles({ name: 'questoes.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
   await page.getByRole('button', { name: 'Validar e ver prévia' }).click(); await expect(page.locator('.json-preview')).toContainText('3 questões');
@@ -56,7 +57,7 @@ test('importação exige professor responsável, valida tudo e mantém rascunho 
 test('aluno responde, salva e entrega abaixo do PDF sem receber gabarito antes da liberação', async ({ browser }) => {
   const metadata = await (await student.get(`/api/assessments/items/${itemId}`)).json(); expect(JSON.stringify(metadata)).not.toContain('answerKey');
   const context = await browser.newContext({ storageState: await student.storageState(), viewport: { width: 390, height: 844 } });
-  const page = await context.newPage(); await page.goto(`http://localhost:3001/apostilas/${docId}`);
+  const page = await context.newPage(); await page.goto(`${baseURL}/apostilas/${docId}`);
   const section = page.getByRole('region', { name: 'Questões da apostila', exact: true });
   await expect(section.getByRole('heading', { name: source.titulo, exact: true })).toBeVisible();
   const pdfBox = await page.locator('.pdf-scroll').boundingBox(); const questionBox = await section.boundingBox(); expect(questionBox!.y).toBeGreaterThanOrEqual(pdfBox!.y + pdfBox!.height);

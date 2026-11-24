@@ -6,7 +6,7 @@ import { hash } from 'bcryptjs';
 import { automaticScores, assessmentSchema, type QuestionDefinition } from '../src/lib/assessments';
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }, { schema: 'escola_test' }) });
-const baseURL = 'http://localhost:3001';
+const baseURL = process.env.PLAYWRIGHT_TEST_URL || 'http://localhost:3001';
 const password = 'SenhaDeAvaliacao123!';
 const slug = `avaliacoes-${randomUUID().slice(0, 8)}`;
 let teacher: APIRequestContext, student: APIRequestContext, otherStudent: APIRequestContext, outsider: APIRequestContext;

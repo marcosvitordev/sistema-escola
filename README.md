@@ -2,6 +2,8 @@
 
 Questões podem ser [importadas em JSON e vinculadas às apostilas](docs/IMPORTAR-QUESTOES-JSON.md), com formulário de resposta abaixo do PDF. O guia traz o formato completo e exemplos de todos os tipos.
 
+Para ilustrar uma questão, abra a apostila como professor e vá até **Questões da apostila → Imagens das questões**. Escolha a questão, selecione um PNG/JPEG de até 5 MB, confira a prévia e clique em **Adicionar imagem à questão**. É possível anexar mais de uma imagem sem apagar as anteriores ou marcar **Substituir todas as imagens desta questão**, com confirmação. Prepare as imagens antes de os alunos iniciarem as respostas; depois desse início, use **Duplicar avaliação** para preparar outra versão.
+
 Aplicação Next.js com App Router, React, TypeScript, API REST e persistência PostgreSQL via Prisma. Interface em português, com temas claro e escuro. Fundação, núcleo do editor PDF e módulo de provas e atividades implementados. Relatórios exportáveis e recursos avançados continuam nas etapas seguintes.
 
 ## Executar localmente

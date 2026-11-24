@@ -1,5 +1,13 @@
 # Registro de implementação
 
+## Imagens nas questões das apostilas — 23/11/2026
+
+Painel Imagens das questões visível no PDF para o professor, com seleção por número/enunciado, PNG/JPEG de até 5 MB, prévia local, cancelamento e confirmação de envio. Novos anexos são acrescentados sem apagar os existentes, usando o identificador de importação para repetição segura. Mantém substituição opcional das imagens com confirmação. O aluno vê as imagens no enunciado durante a tentativa.
+
+Reutiliza a autorização e o armazenamento privado já existentes; arquivos continuam indisponíveis a alunos antes da publicação ou a professores de outras turmas. Após início de tentativas, o painel explica a proteção e orienta duplicar a avaliação. Não altera schema nem permissões da API.
+
+Validação: build/TypeScript e 14 cenários aprovados, incluindo imagens PNG/JPEG, escolha da questão, prévia, cancelamento, preservação de múltiplas imagens, substituição confirmada, recarregamento, acesso privado, visualização no aluno e bloqueio após início. Telas revisadas em desktop e 390 px sem excesso de largura.
+
 ## Exclusão de aulas — 16/11/2026
 
 Botão Excluir aula junto às ações da aula, com confirmação que informa a remoção das apostilas, avaliações, respostas, arquivos de tentativas, entregas e correções vinculadas. Cancela sem alterar dados. A exclusão usa transação com bloqueios dos registros envolvidos e auditoria lesson-deleted, protegida por instituição, professor responsável e origem. Preserva as demais aulas e remove o conteúdo da área do aluno. Não exige migração de banco.
