@@ -96,3 +96,40 @@ test('nova tentativa entregue e reentrega de apostila não reutilizam notas anti
   expect(row.items.find((item: { id: string }) => item.id === manualId).grade).toBeNull(); expect(row.items.find((item: { id: string }) => item.id === pdfId).grade).toBeNull(); expect(row.average).toBe(10); expect(row.provisional).toBe(true); expect(row.pendingManual).toBe(3);
   const result = await teacher.post(`/api/gradebook/${classId}`, { data: { operation: 'correct', from: '2026-12-01' } }); expect((await result.json()).checked).toBe(0);
 });
+
+test('nota 10 em lote respeita entrega, turma e período, confirma e preserva histórico', async ({ browser }) => {
+  const path = `/api/gradebook/${classId}`;
+  const source = await db.pdfDocument.findUniqueOrThrow({ where: { id: pdfId } });
+  const original = await db.pdfWork.findUniqueOrThrow({ where: { id: workId } });
+  const otherLearner = await db.user.findFirstOrThrow({ where: { enrollments: { some: { classId } }, id: { not: learnerId } } });
+  const draft = await db.pdfWork.create({ data: { documentId: pdfId, studentId: otherLearner.id, version: 1 } });
+  const classroom = await db.class.findUniqueOrThrow({ where: { id: classId } });
+  const otherClass = await db.class.create({ data: { name: 'Outra turma preservada', courseId: classroom.courseId, teacherId } });
+  const futureLesson = await db.lesson.create({ data: { classId, title: 'Aula de dezembro', scheduledAt: new Date('2026-12-05T17:00:00Z'), published: true } });
+  const otherLesson = await db.lesson.create({ data: { classId: otherClass.id, title: 'Aula de outra turma', scheduledAt: new Date('2026-11-25T17:00:00Z'), published: true } });
+  const preserved = [];
+  for (const lesson of [futureLesson, otherLesson]) {
+    const document = await db.pdfDocument.create({ data: { lessonId: lesson.id, title: 'Apostila preservada.pdf', content: source.content, sha256: source.sha256, pageCount: source.pageCount } });
+    preserved.push(await db.pdfWork.create({ data: { documentId: document.id, studentId: learnerId, submittedAt: new Date(), feedback: { create: { teacherId, comment: 'Nota original', grade: 4 } } } }));
+  }
+  expect((await student.post(path, { data: { operation: 'pdf-ten' } })).status()).toBe(403);
+  expect((await outsider.post(path, { data: { operation: 'pdf-ten' } })).status()).toBe(404);
+  expect((await teacher.post(path, { data: { operation: 'pdf-ten' }, headers: { Origin: 'https://externo.example' } })).status()).toBe(403);
+  const context = await browser.newContext({ baseURL, storageState: await teacher.storageState(), viewport: { width: 390, height: 844 } });
+  const page = await context.newPage(); await page.goto(`/turmas/${classId}?secao=grades`); const book = page.getByRole('region', { name: 'Caderneta da turma', exact: true });
+  await book.locator('.gradebook-period').getByLabel('De', { exact: true }).fill('2026-11-01'); await book.locator('.gradebook-period').getByLabel('Até', { exact: true }).fill('2026-11-30'); await book.getByRole('button', { name: 'Aplicar período', exact: true }).click();
+  const button = book.getByRole('button', { name: 'Dar 10 nas apostilas entregues', exact: true });
+  const count = await db.pdfFeedback.count({ where: { workId } });
+  page.once('dialog', dialog => { expect(dialog.message()).toContain('já têm outra nota'); return dialog.dismiss(); }); await button.click(); expect(await db.pdfFeedback.count({ where: { workId } })).toBe(count);
+  page.once('dialog', dialog => dialog.accept()); await button.click(); await expect(book.getByRole('status').filter({ hasText: 'Nota 10 atribuída a 1 apostilas entregues' })).toBeVisible();
+  const feedback = await db.pdfFeedback.findMany({ where: { workId }, orderBy: { createdAt: 'desc' } }); expect(feedback[0].grade).toBe(10); expect(feedback.some(item => item.grade === 8)).toBe(true);
+  const after = await db.pdfWork.findUniqueOrThrow({ where: { id: workId } }); expect(after.version).toBe(original.version); expect(after.submittedAt).toEqual(original.submittedAt); expect(after.annotations).toEqual(original.annotations);
+  expect(await db.pdfFeedback.count({ where: { workId: draft.id } })).toBe(0); expect((await db.pdfWork.findUniqueOrThrow({ where: { id: draft.id } })).submittedAt).toBeNull();
+  for (const item of preserved) expect(await db.pdfFeedback.findFirstOrThrow({ where: { workId: item.id } })).toMatchObject({ grade: 4 });
+  const again = await teacher.post(path, { data: { operation: 'pdf-ten', from: '2026-11-01', to: '2026-11-30' } }); expect(await again.json()).toMatchObject({ graded: 0, alreadyTen: 1 }); expect(await db.pdfFeedback.count({ where: { workId } })).toBe(count + 1);
+  expect(await db.auditLog.count({ where: { action: 'pdf-bulk-ten', resourceId: workId } })).toBe(1);
+  const report = await (await teacher.get(`${path}?from=2026-11-01&to=2026-11-30`)).json(); expect(report.students.find((item: { id: string }) => item.id === learnerId).categories.PDF.average).toBe(10);
+  const learnerWork = await (await student.get(`/api/learning/documents/${pdfId}/work`)).json(); expect(learnerWork.work.feedback[0].grade).toBe(10);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.screenshot({ path: 'test-results/caderneta-nota10-mobile.png', fullPage: true, animations: 'disabled' });
+  await context.close();
+});

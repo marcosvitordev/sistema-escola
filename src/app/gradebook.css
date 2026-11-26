@@ -15,6 +15,9 @@
 .gradebook-counters strong { font-size: 28px; }
 .gradebook-counters span { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .gradebook-management { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.gradebook-pdf-ten { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-top: 20px; }
+.gradebook-pdf-ten > div { flex: 1 1 300px; }
+.gradebook-pdf-ten p { margin: 0; font-size: 13px; }
 .gradebook-management p { font-size: 13px; }
 .gradebook-release { display: flex; flex-direction: row; align-items: center; gap: 10px; margin: 18px 0; font-size: 12px; line-height: 1.5; }
 .gradebook-release input { width: 18px; min-height: 18px; flex-shrink: 0; }

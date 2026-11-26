@@ -76,3 +76,24 @@ export async function correctGradebook(classId: string, actor: { id: string; ins
     return result;
   }, { maxWait: 10_000, timeout: 60_000 });
 }
+
+export async function givePdfTen(classId: string, actor: { id: string; institutionId: string }, range: GradeRange) {
+  return db.$transaction(async tx => {
+    const schema = new URL(process.env.DATABASE_URL!).searchParams.get('schema') ?? 'escola';
+    await tx.$queryRaw`SELECT set_config('search_path', ${`"${schema.replaceAll('"', '""')}"`}, true)`;
+    await tx.$queryRaw`SELECT d.id FROM "PdfDocument" d JOIN "Lesson" l ON l.id = d."lessonId" WHERE l."classId" = ${classId} ORDER BY d.id FOR UPDATE OF d`;
+    await tx.$queryRaw`SELECT w.id FROM "PdfWork" w JOIN "PdfDocument" d ON d.id = w."documentId" JOIN "Lesson" l ON l.id = d."lessonId" WHERE l."classId" = ${classId} ORDER BY w.id FOR UPDATE OF w`;
+    const works = await tx.pdfWork.findMany({ where: { submittedAt: { not: null }, document: { lesson: { classId } }, student: { enrollments: { some: { classId } } } }, select: { id: true, submittedAt: true, document: { select: { createdAt: true, lesson: { select: { scheduledAt: true } } } }, feedback: { where: { grade: { not: null } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1, select: { grade: true, createdAt: true } } } });
+    const result = { graded: 0, alreadyTen: 0 };
+    for (const work of works) {
+      if (!inGradeRange(work.document.lesson.scheduledAt || work.document.createdAt, range)) continue;
+      const latest = work.feedback[0];
+      if (latest?.grade === 10 && latest.createdAt >= work.submittedAt!) { result.alreadyTen++; continue; }
+      await tx.pdfFeedback.create({ data: { workId: work.id, teacherId: actor.id, grade: 10, comment: 'Nota 10 atribuída em lote na caderneta.' } });
+      await tx.auditLog.create({ data: { institutionId: actor.institutionId, actorId: actor.id, action: 'pdf-bulk-ten', resourceId: work.id } });
+      result.graded++;
+    }
+    await tx.auditLog.create({ data: { institutionId: actor.institutionId, actorId: actor.id, action: 'gradebook-pdf-ten', resourceId: classId } });
+    return result;
+  }, { maxWait: 10_000, timeout: 60_000 });
+}

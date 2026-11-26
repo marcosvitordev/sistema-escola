@@ -1,5 +1,11 @@
 # Registro de implementação
 
+## Nota 10 em lote nas apostilas — 26/11/2026
+
+Botão Dar 10 nas apostilas entregues na caderneta, com confirmação explícita de turma/período e substituição da nota atual. Cria nova correção com nota 10 e preserva o histórico, as respostas e a entrega. Trabalhos não entregues, alunos fora da turma e outros períodos são preservados. Bloqueios de documentos/trabalhos na transação evitam concorrer com devoluções e exclusões; uma nota 10 já válida não é duplicada. Auditoria por trabalho e por operação. Atualiza médias/relatórios e disponibiliza o feedback ao aluno; sem migração de banco.
+
+Validação: build/TypeScript e cinco cenários da caderneta aprovados, incluindo cancelamento, confirmação, permissões, nota anterior preservada, entrega/respostas inalteradas, exclusão de outras turmas e períodos, notas disponíveis para o aluno, atualização da média e repetição sem duplicação de feedback.
+
 ## Caderneta, pesos e correção em lote — 25/11/2026
 
 Nova aba Caderneta na turma, com médias por categoria e média ponderada geral, contadores de correções/entregas, busca por aluno, período por data da aula ou inclusão, relatório individual em diálogo e links para corrigir cada trabalho. Exporta resumo ou detalhe CSV, inclusive por aluno, e imprime turma/relatório individual. CSV usa BOM, separador ponto e vírgula, decimal em português e proteção contra fórmulas em campos textuais.

@@ -4,13 +4,13 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { allowedRequestOrigin } from '@/lib/request-origin';
 import { gradebookCsv } from '@/lib/gradebook';
-import { classGradebook, correctGradebook, gradebookClass } from '@/lib/gradebook-data';
+import { classGradebook, correctGradebook, givePdfTen, gradebookClass } from '@/lib/gradebook-data';
 
 export const runtime = 'nodejs';
 const json = (value: unknown, status = 200) => NextResponse.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const rangeSchema = z.object({ from: z.iso.date().optional(), to: z.iso.date().optional() }).refine(value => !value.from || !value.to || value.from <= value.to, 'A data inicial deve ser anterior à final.');
 const weightsSchema = z.object({ PDF: z.number().min(0).max(100), ACTIVITY: z.number().min(0).max(100), TEST: z.number().min(0).max(100) }).strict().refine(value => value.PDF + value.ACTIVITY + value.TEST > 0, 'Informe ao menos um peso maior que zero.');
-const mutation = z.discriminatedUnion('operation', [z.object({ operation: z.literal('weights'), version: z.number().int().min(0), weights: weightsSchema }).strict(), z.object({ operation: z.literal('correct'), from: z.iso.date().optional(), to: z.iso.date().optional(), releaseGrades: z.boolean().default(false) }).strict()]);
+const mutation = z.discriminatedUnion('operation', [z.object({ operation: z.literal('weights'), version: z.number().int().min(0), weights: weightsSchema }).strict(), z.object({ operation: z.literal('correct'), from: z.iso.date().optional(), to: z.iso.date().optional(), releaseGrades: z.boolean().default(false) }).strict(), z.object({ operation: z.literal('pdf-ten'), from: z.iso.date().optional(), to: z.iso.date().optional() }).strict()]);
 async function handler(req: NextRequest, context: { params: Promise<{ classId: string }> }) {
   try {
     const user = await currentUser();
@@ -38,6 +38,7 @@ async function handler(req: NextRequest, context: { params: Promise<{ classId: s
       return updated ? json({ ok: true }) : json({ error: 'Os pesos mudaram em outra janela. Atualize a caderneta antes de salvar.' }, 409);
     }
     const range = rangeSchema.parse({ from: data.from, to: data.to });
+    if (data.operation === 'pdf-ten') return json(await givePdfTen(classroom.id, user, range));
     return json(await correctGradebook(classroom.id, user, range, data.releaseGrades));
   } catch (error) {
     if (error instanceof z.ZodError) return json({ error: error.issues[0]?.message || 'Confira os dados.' }, 400);
