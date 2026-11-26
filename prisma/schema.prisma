@@ -62,6 +62,10 @@ model Class {
   course Course @relation(fields: [courseId], references: [id])
   teacherId String
   teacher User @relation(fields: [teacherId], references: [id])
+  pdfWeight Float @default(3)
+  activityWeight Float @default(3)
+  testWeight Float @default(4)
+  gradeWeightsVersion Int @default(0)
   createdAt DateTime @default(now())
   enrollments Enrollment[]
   lessons Lesson[]

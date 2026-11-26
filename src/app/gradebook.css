@@ -1,0 +1,83 @@
+.class-page-in-shell .class-details-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.class-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gradebook { min-width: 0; }
+.gradebook .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.gradebook h4 { margin: 0 0 12px; font-size: 18px; }
+.gradebook p { line-height: 1.65; }
+.gradebook-period { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 16px; margin: 20px 0; }
+.gradebook-period > div { flex: 1 1 220px; }
+.gradebook-period p { margin: 6px 0 0; font-size: 12px; }
+.gradebook-period label { flex: 1 1 150px; min-width: 0; }
+.gradebook-period input { min-width: 0; width: 100%; }
+.gradebook-period button { min-height: 44px; }
+.gradebook-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.gradebook-counters article { display: flex; flex-direction: column; gap: 9px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.gradebook-counters strong { font-size: 28px; }
+.gradebook-counters span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.gradebook-management { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.gradebook-management p { font-size: 13px; }
+.gradebook-release { display: flex; flex-direction: row; align-items: center; gap: 10px; margin: 18px 0; font-size: 12px; line-height: 1.5; }
+.gradebook-release input { width: 18px; min-height: 18px; flex-shrink: 0; }
+.gradebook-weights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gradebook-weights label { min-width: 0; font-size: 12px; }
+.gradebook-weights input { width: 100%; }
+.gradebook-rules { margin: 20px 0; background: var(--soft); border: 1px solid var(--line); padding: 16px 20px; border-radius: 10px; font-size: 13px; }
+.gradebook-rules summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+.gradebook-list-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; margin: 24px 0 18px; }
+.gradebook-list-tools > label { display: flex; align-items: center; flex-direction: row; gap: 10px; min-width: 0; flex: 1 1 220px; }
+.gradebook-list-tools input { min-width: 0; }
+.gradebook-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.gradebook-actions button { font-size: 12px; min-height: 42px; }
+.gradebook-table { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.gradebook-table td { font-size: 13px; }
+.gradebook-table small { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.gradebook-average { font-size: 19px; color: var(--primary); }
+.gradebook-student-summary { display: flex; flex-direction: column; gap: 9px; padding: 22px; border-radius: 12px; background: var(--soft); }
+.gradebook-student-summary strong { font-size: 26px; }
+.gradebook-student-summary span { font-size: 13px; color: var(--muted); }
+.gradebook-dialog .gradebook-counters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gradebook-student-items { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.gradebook-student-items article { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.gradebook-student-items article > div { min-width: 0; }
+.gradebook-student-items article > div:last-child { display: flex; flex-direction: column; gap: 18px; flex-shrink: 0; align-items: flex-end; }
+.gradebook-student-items h3 { font-size: 17px; line-height: 1.5; margin: 12px 0 5px; overflow-wrap: anywhere; }
+.gradebook-student-items p { font-size: 12px; line-height: 1.6; margin: 8px 0; overflow-wrap: anywhere; }
+.gradebook-student-items small { font-size: 11px; color: var(--muted); }
+.gradebook-student-items .gradebook-note { white-space: pre-wrap; }
+.gradebook-student-items .button-link { min-height: 42px; font-size: 12px; }
+.gradebook-print { display: none; }
+@media(max-width:1000px) { .gradebook-management { grid-template-columns: 1fr; } .gradebook-counters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media(max-width:760px) {
+  .class-page-in-shell .class-details-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .class-page-in-shell .class-details-tabs button:last-child { grid-column: 1 / -1; }
+  .class-quick-actions { grid-template-columns: 1fr; }
+  .gradebook-period { padding: 16px; gap: 12px; }
+  .gradebook-period label { flex-basis: calc(50% - 12px); }
+  .gradebook-counters { gap: 10px; }
+  .gradebook-counters article { padding: 15px; }
+  .gradebook-counters strong { font-size: 24px; }
+  .gradebook-actions > button { flex: 1 1 auto; }
+  .gradebook-table table, .gradebook-table tbody { display: block; width: 100%; }
+  .gradebook-table thead { display: none; }
+  .gradebook-table tr { display: block; border-bottom: 1px solid var(--line); padding: 14px 18px; }
+  .gradebook-table td { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; padding: 10px 0; border: 0; white-space: normal; }
+  .gradebook-table td::before { content: attr(data-label); color: var(--muted); font-size: 12px; }
+  .gradebook-table td small { flex-basis: 100%; text-align: right; }
+  .gradebook-table td:first-child::before { display: none; }
+  .gradebook-table td:first-child small { text-align: left; }
+  .gradebook-student-items article { flex-direction: column; padding: 16px; }
+  .gradebook-student-items article > div:last-child { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+  .gradebook-dialog .gradebook-counters { gap: 7px; }
+  .gradebook-dialog .gradebook-counters article { padding: 12px 8px; }
+  .gradebook-dialog .gradebook-counters span { font-size: 11px; }
+}
+@media print {
+  body:has(> .gradebook-print) > :not(.gradebook-print) { display: none !important; }
+  .gradebook-print { display: block; padding: 0; font: 11pt Arial, sans-serif; color: #111; background: white; }
+  .gradebook-print h1 { font-size: 20pt; }
+  .gradebook-print h2 { font-size: 15pt; }
+  .gradebook-print p { font-size: 9pt; line-height: 1.5; }
+  .gradebook-print table { width: 100%; border-collapse: collapse; }
+  .gradebook-print th, .gradebook-print td { white-space: normal; padding: 8px; border: 1px solid #aaa; font-size: 9pt; color: #111; background: white; }
+  .gradebook-print tr { break-inside: avoid; }
+}

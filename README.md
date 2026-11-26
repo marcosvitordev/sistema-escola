@@ -4,7 +4,7 @@ Questões podem ser [importadas em JSON e vinculadas às apostilas](docs/IMPORTA
 
 Para ilustrar uma questão, abra a apostila como professor e vá até **Questões da apostila → Imagens das questões**. Escolha a questão, selecione um PNG/JPEG de até 5 MB, confira a prévia e clique em **Adicionar imagem à questão**. É possível anexar mais de uma imagem sem apagar as anteriores ou marcar **Substituir todas as imagens desta questão**, com confirmação. Prepare as imagens antes de os alunos iniciarem as respostas; depois desse início, use **Duplicar avaliação** para preparar outra versão.
 
-Aplicação Next.js com App Router, React, TypeScript, API REST e persistência PostgreSQL via Prisma. Interface em português, com temas claro e escuro. Fundação, núcleo do editor PDF e módulo de provas e atividades implementados. Relatórios exportáveis e recursos avançados continuam nas etapas seguintes.
+Aplicação Next.js com App Router, React, TypeScript, API REST e persistência PostgreSQL via Prisma. Interface em português, com temas claro e escuro. Fundação, núcleo do editor PDF e módulo de provas e atividades implementados. Caderneta com pesos por categoria, correção objetiva em lote, relatórios CSV e impressão disponíveis.
 
 ## Executar localmente
 
@@ -36,6 +36,12 @@ Se utilizar um servidor PostgreSQL existente, configure `DATABASE_URL` e omita o
 Senhas de alunos aceitam a partir de **4 caracteres**, no cadastro, na troca pessoal e na redefinição pelo professor/administrador. Professores e administradores continuam com mínimo de **10 caracteres**. A troca obrigatória no primeiro acesso e após redefinição continua ativa.
 
 ## Detalhes da turma
+
+Em **Turma → Caderneta**, use **Corrigir tudo** para conferir a pontuação objetiva das tentativas entregues, preservando revisões e comentários manuais. Discursivas, arquivos, práticas e apostilas sem nota permanecem pendentes; abra **Ver relatório → Corrigir trabalho** para avaliá-los. Marque **Liberar também as notas corrigidas** se quiser disponibilizar os resultados aos alunos.
+
+A nota geral usa a média de cada categoria, combinada pelos pesos salvos na turma: inicialmente apostilas 3, atividades 3 e provas 4. Os pesos são editáveis; zero exclui uma categoria. Itens sem nota ficam pendentes e não recebem zero automático: a média é identificada como parcial. Categorias sem nota ficam fora do denominador até receberem correção. Avaliações usam a última tentativa entregue. PDFs usam a última nota atribuída após a entrega atual, para não reaproveitar nota antiga em uma reentrega.
+
+O filtro de período usa a data da aula ou, sem data prevista, a inclusão do material, no fuso do Acre. A caderneta mantém trabalhos existentes de conteúdos retirados de publicação. **Exportar resumo CSV**, **Exportar detalhado CSV**, impressão da turma e relatório individual ajudam a transferir as notas para a caderneta oficial. CSVs respeitam o período e incluem os pesos utilizados; datas de exportação e entrega seguem o horário do Acre. O relatório gerencial é restrito ao professor responsável e ao administrador da instituição.
 
 **Excluir aula**, dentro da aula expandida, exige confirmação e apaga a aula com suas apostilas, provas, atividades, respostas, entregas e correções. A confirmação informa essa consequência. Apenas o administrador da instituição ou professor responsável pode excluir; as demais aulas são preservadas.
 

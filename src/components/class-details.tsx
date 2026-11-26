@@ -6,6 +6,7 @@ import { useUrlSection } from './use-url-section';
 import { ClassLearning } from './class-learning';
 import { ClassAssessments } from './class-assessments';
 import { ClassLiveLink } from './class-live-link';
+import { ClassGradebook } from './class-gradebook';
 
 export type Person = { id: string; name: string; username?: string; role: string };
 export type Classroom = { id: string; name: string; course: { name: string; description: string }; teacher: { name: string }; enrollments: { id: string; student: Person }[] };
@@ -14,6 +15,7 @@ const sections = [
   { id: 'students', label: 'Alunos', icon: Users },
   { id: 'lessons', label: 'Aulas e apostilas', icon: BookOpen },
   { id: 'assessments', label: 'Provas e atividades', icon: ClipboardList },
+  { id: 'grades', label: 'Caderneta', icon: ClipboardList },
 ] as const;
 type Section = typeof sections[number]['id'];
 
@@ -41,7 +43,7 @@ export function ClassDetails({ classroom, users, onChanged }: { classroom: Class
     <div className="class-details-tabs" role="tablist" aria-label="Seções da turma">{sections.map((item, index) => <button key={item.id} id={tabId(item.id)} type="button" role="tab" aria-selected={section === item.id} aria-controls={panelId(item.id)} tabIndex={section === item.id ? 0 : -1} onClick={() => navigate(item.id)} onKeyDown={event => keyboard(event, index)}><item.icon size={18} aria-hidden="true" />{item.label}</button>)}</div>
     <section className="class-details-panel" id={panelId('summary')} role="tabpanel" aria-labelledby={tabId('summary')} hidden={section !== 'summary'} tabIndex={0}>
       <div className="class-section-intro"><h3>O que você quer fazer?</h3><p>Escolha uma seção para cuidar de cada parte da turma.</p></div>
-      <div className="class-quick-actions">{sections.slice(1).map(item => <button key={item.id} onClick={() => navigate(item.id)}><span className={`class-action-icon ${item.id}`}><item.icon size={25} /></span><strong>{item.label}</strong><p>{item.id === 'students' ? 'Cadastre alunos e organize as matrículas.' : item.id === 'lessons' ? 'Crie aulas, envie PDFs e acompanhe as entregas.' : 'Prepare avaliações e corrija as respostas.'}</p><span className="class-action-link">Abrir seção <ArrowUpRight size={16} /></span></button>)}</div>
+      <div className="class-quick-actions">{sections.slice(1).map(item => <button key={item.id} onClick={() => navigate(item.id)}><span className={`class-action-icon ${item.id}`}><item.icon size={25} /></span><strong>{item.label}</strong><p>{item.id === 'students' ? 'Cadastre alunos e organize as matrículas.' : item.id === 'lessons' ? 'Crie aulas, envie PDFs e acompanhe as entregas.' : item.id === 'grades' ? 'Confira notas, corrija entregas e exporte relatórios.' : 'Prepare avaliações e corrija as respostas.'}</p><span className="class-action-link">Abrir seção <ArrowUpRight size={16} /></span></button>)}</div>
       <div className="class-workflow"><strong>Para preparar sua turma</strong><ol><li>Cadastre ou matricule os alunos.</li><li>Crie as aulas e envie as apostilas.</li><li>Publique os materiais e as avaliações.</li></ol></div>
       {classroom.course.description && <div className="class-course-description"><h4>Sobre o curso</h4><p>{classroom.course.description}</p></div>}
     </section>
@@ -54,5 +56,6 @@ export function ClassDetails({ classroom, users, onChanged }: { classroom: Class
     </section>
     <section className="class-details-panel" id={panelId('lessons')} role="tabpanel" aria-labelledby={tabId('lessons')} hidden={section !== 'lessons'} tabIndex={0}>{(visited.includes('lessons') || section === 'lessons') && <ClassLearning classId={classroom.id} manage showAssessmentsLink={false} />}</section>
     <section className="class-details-panel" id={panelId('assessments')} role="tabpanel" aria-labelledby={tabId('assessments')} hidden={section !== 'assessments'} tabIndex={0}>{(visited.includes('assessments') || section === 'assessments') && <ClassAssessments classId={classroom.id} embedded visible={section === 'assessments'} />}</section>
+    <section className="class-details-panel" id={panelId('grades')} role="tabpanel" aria-labelledby={tabId('grades')} hidden={section !== 'grades'} tabIndex={0}>{(visited.includes('grades') || section === 'grades') && <ClassGradebook classId={classroom.id} visible={section === 'grades'} />}</section>
   </div>;
 }

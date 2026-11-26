@@ -1,5 +1,15 @@
 # Registro de implementação
 
+## Caderneta, pesos e correção em lote — 25/11/2026
+
+Nova aba Caderneta na turma, com médias por categoria e média ponderada geral, contadores de correções/entregas, busca por aluno, período por data da aula ou inclusão, relatório individual em diálogo e links para corrigir cada trabalho. Exporta resumo ou detalhe CSV, inclusive por aluno, e imprime turma/relatório individual. CSV usa BOM, separador ponto e vírgula, decimal em português e proteção contra fórmulas em campos textuais.
+
+Pesos persistidos na turma (apostilas 3, atividades 3, provas 4 por padrão), editáveis com controle de versão e auditoria. Média de cada categoria antes da ponderação; itens sem nota não são convertidos em zero, e tornam o resultado parcial quando têm peso. Categorias sem nota são omitidas temporariamente do denominador. Usa a última tentativa entregue e nota de PDF posterior à entrega atual. Conteúdo não publicado com trabalho existente permanece no histórico gerencial.
+
+Corrigir tudo recalcula apenas questões objetivas de tentativas entregues. Preserva correções, comentários e autoria manual; mantém incompletas as questões manuais pendentes. Operação idempotente para tentativas já corretas, com versão por tentativa, transação, bloqueios e auditoria. Liberação de notas é opcional e explícita. Nenhuma tentativa em andamento é entregue automaticamente. Apostilas continuam exigindo avaliação do professor.
+
+Migração aditiva 20261125020000_gradebook_weights: pesos e versão na turma, sem alteração das notas existentes. Build/TypeScript, testes unitários de ponderação/nota zero/correção manual/CSV e 20 cenários de navegador/API aprovados. Cobertura inclui isolamento por instituição/professor, pesos concorrentes, notas parciais, tentativas e reentregas, correção em lote sem perda de revisões, liberação de notas, filtro persistente, CSV e impressão. Telas revisadas em desktop e celular.
+
 ## Imagens nas questões das apostilas — 23/11/2026
 
 Painel Imagens das questões visível no PDF para o professor, com seleção por número/enunciado, PNG/JPEG de até 5 MB, prévia local, cancelamento e confirmação de envio. Novos anexos são acrescentados sem apagar os existentes, usando o identificador de importação para repetição segura. Mantém substituição opcional das imagens com confirmação. O aluno vê as imagens no enunciado durante a tentativa.

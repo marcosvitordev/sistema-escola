@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { assessmentGrade, csvCell, manualComplete, summarizeStudent, type GradeItem } from '../src/lib/gradebook';
+const identity = { id: 'aluno', name: 'Aluno', username: '123' }, weights = { PDF: 3, ACTIVITY: 3, TEST: 4 };
+function item(kind: GradeItem['kind'], grade: number | null): GradeItem { return { id: `${kind}:${grade}`, kind, title: kind, lesson: 'Aula', date: '2026-11-25', published: true, state: grade === null ? 'manual' : 'graded', grade, submittedAt: null, correctedAt: null, href: '/', note: '', released: false }; }
+const complete = summarizeStudent(identity, [item('PDF', 8), item('PDF', 4), item('ACTIVITY', 8), item('TEST', 10)], weights);
+assert.equal(complete.categories.PDF.average, 6); assert.equal(complete.average, 8.2); assert.equal(complete.provisional, false);
+const partial = summarizeStudent(identity, [item('PDF', 8), item('ACTIVITY', 6), item('TEST', null)], weights);
+assert.equal(partial.average, 7); assert.equal(partial.provisional, true);
+assert.equal(summarizeStudent(identity, [item('PDF', 0)], weights).average, 0);
+assert.equal(summarizeStudent(identity, [item('PDF', null)], weights).average, null);
+assert.equal(summarizeStudent(identity, [item('PDF', 10), item('TEST', null)], { PDF: 1, ACTIVITY: 0, TEST: 0 }).provisional, false);
+const questions = [{ id: 'objective', type: 'TRUE_FALSE', points: 2 }, { id: 'manual', type: 'ESSAY', points: 3 }];
+assert.equal(manualComplete(questions, {}), false); assert.equal(manualComplete(questions, { manual: { points: 0 } }), true);
+assert.equal(assessmentGrade(questions, { objective: 2, obsolete: 500 }, { manual: { points: 1 }, obsolete: { points: 900 } }), 6);
+assert.equal(assessmentGrade(questions, { objective: 2 }, {}), null);
+assert.equal(assessmentGrade(questions, { objective: 3 }, { manual: { points: 1 } }), null);
+assert.equal(assessmentGrade([], {}, {}), null);
+for (const value of ['=HYPERLINK("x")', ' +SUM(A1)', '@SUM(A1)', '\t=SUM(A1)']) assert.ok(csvCell(value).startsWith('"\''));
+assert.equal(csvCell('Aluno "Silva"'), '"Aluno ""Silva"""');
+console.log('Gradebook: category weights, partial/zero grades, manual review, score bounds and CSV escaping passed.');
