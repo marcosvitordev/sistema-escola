@@ -1,0 +1,39 @@
+.student-grades { margin: 25px 0 30px; }
+.student-grades .student-outline, .student-grades-dialog .student-outline { color: var(--primary); background: var(--soft); border-color: var(--line); }
+.student-grades > .student-section-heading { align-items: center; }
+.student-grades > .student-section-heading > svg { color: var(--primary); }
+.student-grade-card { border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 24px; margin: 18px 0; }
+.student-grade-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.student-grade-heading h3 { font-size: 20px; margin: 8px 0 0; overflow-wrap: anywhere; }
+.student-grade-heading .student-icon { flex-shrink: 0; }
+.student-grade-overall { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 22px 0; }
+.student-grade-overall > div { display: flex; flex-direction: column; gap: 5px; }
+.student-grade-overall > div > span { color: var(--muted); font-size: 13px; }
+.student-grade-overall strong { font-size: 38px; letter-spacing: -1px; color: var(--primary); }
+.student-grade-overall strong small { font-size: 16px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.student-grade-categories { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.student-grade-categories > div { display: flex; flex-direction: column; gap: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.student-grade-categories span { font-size: 13px; }
+.student-grade-categories strong { font-size: 24px; }
+.student-grade-categories small { font-size: 11px; color: var(--muted); line-height: 1.6; }
+.student-grade-explanation { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 16px 0; }
+.student-grade-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+.student-grade-bottom > span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.student-grade-items { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+.student-grade-items article { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.student-grade-items article > div { min-width: 0; }
+.student-grade-items article > div:last-child { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; gap: 16px; }
+.student-grade-items h3 { font-size: 18px; line-height: 1.5; margin: 9px 0 5px; overflow-wrap: anywhere; }
+.student-grade-items p { font-size: 12px; line-height: 1.6; }
+.student-grade-items strong { font-size: 23px; color: var(--primary); white-space: nowrap; }
+.student-grade-items strong small { font-size: 12px; font-weight: 400; color: var(--muted); }
+@media(max-width:760px) {
+  .student-grade-card { padding: 18px; }
+  .student-grade-categories { gap: 8px; }
+  .student-grade-categories > div { padding: 13px 9px; }
+  .student-grade-categories span { font-size: 12px; }
+  .student-grade-categories strong { font-size: 22px; }
+  .student-grade-items article { flex-direction: column; padding: 16px; }
+  .student-grade-items article > div:last-child { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+  .student-grade-items .student-outline { width: auto; }
+}

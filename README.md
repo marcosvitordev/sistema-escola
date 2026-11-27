@@ -55,6 +55,8 @@ Ao abrir uma turma no painel de gestão, a página `/turmas/[id]` reúne as seç
 
 ## Área simplificada do aluno
 
+No **Meu início**, **Minhas médias e notas** mostra a média geral ponderada e as médias de apostilas, atividades e provas por turma, respeitando os pesos configurados. **Ver minhas notas** abre a lista dos trabalhos, notas e pendências, com acesso às correções. A média do aluno considera somente notas liberadas de materiais publicados; notas ainda ocultas não entram em nenhum total. Por isso ela pode diferir temporariamente da caderneta do professor. Médias parciais e a espera por correção/liberação são identificadas. Nota zero aparece como zero; ausência de nota aparece como traço. Cada turma mantém sua própria média.
+
 As listas de apostilas e avaliações são separadas por dia, com filtro de mês e ordenação das mais recentes ou mais antigas. Apostilas usam a data da aula (ou de inclusão); avaliações usam o prazo de entrega, seguido da data da aula ou de inclusão quando não houver prazo. As datas seguem o horário do Acre. O mês e a ordem ficam na URL para manter a seleção ao recarregar.
 
 O aluno tem um início próprio, separado do painel de gestão. Os acessos principais são **Apostilas**, **Provas e atividades** e **Minhas correções**. No celular, ficam em uma barra de navegação na parte inferior da tela, com botões grandes e nomes curtos.

@@ -10,6 +10,7 @@ import './experience.css';
 import './polish.css';
 import './portal-refresh.css';
 import './gradebook.css';
+import './student-grades.css';
 export const metadata: Metadata = { title: 'Aprender · Plataforma educacional', description: 'Seu espaço de ensino e aprendizagem.' };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="pt-BR"><body>{children}</body></html>;

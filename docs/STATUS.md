@@ -1,5 +1,11 @@
 # Registro de implementação
 
+## Médias e notas no início do aluno — 26/11/2026
+
+Novo painel Minhas médias e notas no Meu início, com nota geral, médias por categoria, pesos e pendências por turma. Respeita o filtro de turma e abre as notas individuais em diálogo com links para os próprios trabalhos. Atualiza ao usar Atualizar, retornar à janela e a cada 30 segundos enquanto visível.
+
+Endpoint privado /api/student/grades verifica instituição e matrícula, consulta somente trabalhos do próprio aluno e mantém a caderneta gerencial bloqueada para estudantes. Usa as mesmas regras de ponderação/última entrega da caderneta, porém mascara notas não liberadas antes de qualquer cálculo público e omite conteúdos retirados de publicação. O DTO não contém gabaritos, respostas, revisões, comentários internos ou dados de outros alunos. Médias podem ser parciais até a liberação das notas; zero é distinguido de ausência de nota. Sem migração de banco.
+
 ## Nota 10 em lote nas apostilas — 26/11/2026
 
 Botão Dar 10 nas apostilas entregues na caderneta, com confirmação explícita de turma/período e substituição da nota atual. Cria nova correção com nota 10 e preserva o histórico, as respostas e a entrega. Trabalhos não entregues, alunos fora da turma e outros períodos são preservados. Bloqueios de documentos/trabalhos na transação evitam concorrer com devoluções e exclusões; uma nota 10 já válida não é duplicada. Auditoria por trabalho e por operação. Atualiza médias/relatórios e disponibiliza o feedback ao aluno; sem migração de banco.
