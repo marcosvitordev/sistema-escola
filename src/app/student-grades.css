@@ -1,4 +1,7 @@
 .student-grades { margin: 25px 0 30px; }
+.student-card-grade { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 14px; margin: 14px 0 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--primary); }
+.student-card-grade strong { font-size: 17px; }
+.student-card-grade small { font-size: 11px; color: var(--muted); }
 .student-grades .student-outline, .student-grades-dialog .student-outline { color: var(--primary); background: var(--soft); border-color: var(--line); }
 .student-grades > .student-section-heading { align-items: center; }
 .student-grades > .student-section-heading > svg { color: var(--primary); }

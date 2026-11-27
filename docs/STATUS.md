@@ -1,5 +1,11 @@
 # Registro de implementação
 
+## Notas nos cartões de provas e atividades — 26/11/2026
+
+Cartões do aluno mostram a nota normalizada de 0 a 10 e o número da tentativa, mediante entrega, correção concluída e liberação das notas. A API calcula a nota no servidor com a mesma regra da caderneta, sem retornar pontuações brutas, revisões, respostas ou gabaritos. A lista usa a última tentativa entregue; entregas novas pendentes não herdam a nota da entrega anterior. Minhas correções mantém o acesso à última correção disponível. Sem migração de banco.
+
+Build/TypeScript e sete cenários de navegador/API aprovados. Verificados cartões de prova/atividade no celular, ocultação de notas não liberadas, proteção de dados internos e atualização após nova entrega ou mudança da liberação.
+
 ## Médias e notas no início do aluno — 26/11/2026
 
 Novo painel Minhas médias e notas no Meu início, com nota geral, médias por categoria, pesos e pendências por turma. Respeita o filtro de turma e abre as notas individuais em diálogo com links para os próprios trabalhos. Atualiza ao usar Atualizar, retornar à janela e a cada 30 segundos enquanto visível.

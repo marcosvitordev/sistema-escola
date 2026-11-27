@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { assessmentGrade } from '@/lib/gradebook';
 
 export const runtime = 'nodejs';
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
             },
             assessments: {
               where: { published: true }, orderBy: { createdAt: 'desc' },
-              select: { id: true, title: true, kind: true, createdAt: true, dueAt: true, maxAttempts: true, gradesReleased: true, _count: { select: { questions: true } }, attempts: { where: { studentId: user.id }, orderBy: { number: 'desc' }, select: { id: true, number: true, submittedAt: true, gradedAt: true, updatedAt: true } } },
+              select: { id: true, title: true, kind: true, createdAt: true, dueAt: true, maxAttempts: true, gradesReleased: true, _count: { select: { questions: true } }, questions: { select: { id: true, type: true, points: true } }, attempts: { where: { studentId: user.id }, orderBy: { number: 'desc' }, select: { id: true, number: true, submittedAt: true, gradedAt: true, updatedAt: true, autoScores: true, review: true } } },
             },
           },
         },
@@ -33,7 +34,7 @@ export async function GET() {
     return response({
       classes: classes.map(c => ({ id: c.id, name: c.name, course: c.course.name, teacher: c.teacher.name })),
       materials: classes.flatMap(c => c.lessons.flatMap(lesson => lesson.documents.map(({ works, ...document }) => ({ ...document, classId: c.id, lessonTitle: lesson.title, module: lesson.module, scheduledAt: lesson.scheduledAt, work: works[0] ? { ...works[0], feedback: works[0].feedback[0] ?? null } : null })))),
-      assessments: classes.flatMap(c => c.lessons.flatMap(lesson => lesson.assessments.map(({ _count, ...assessment }) => ({ ...assessment, classId: c.id, lessonTitle: lesson.title, scheduledAt: lesson.scheduledAt, questionCount: _count.questions })))),
+      assessments: classes.flatMap(c => c.lessons.flatMap(lesson => lesson.assessments.map(({ _count, questions, attempts, ...assessment }) => ({ ...assessment, attempts: attempts.map(({ autoScores, review, ...attempt }) => ({ ...attempt, grade: assessment.gradesReleased && attempt.submittedAt && attempt.gradedAt ? assessmentGrade(questions, autoScores, review) : null })), classId: c.id, lessonTitle: lesson.title, scheduledAt: lesson.scheduledAt, questionCount: _count.questions })))),
     });
   } catch (error) {
     console.error('Student home', error instanceof Error ? error.name : 'unknown');

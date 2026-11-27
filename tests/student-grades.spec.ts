@@ -44,6 +44,9 @@ test('aluno recebe somente suas notas liberadas e médias sem revelar dados inte
   expect(main).toMatchObject({ average: 8, provisional: true, awaitingRelease: 2, awaitingCorrection: 1, categories: { PDF: { average: 8 }, ACTIVITY: { average: null }, TEST: { average: null } } });
   expect(main.items.find((item: { id: string }) => item.id === activityId)).toMatchObject({ grade: null, status: 'awaiting-release' }); expect(main.items.find((item: { id: string }) => item.id === testId)).toMatchObject({ grade: null, status: 'awaiting-release' });
   expect(data.classes.find((item: { classId: string }) => item.classId === zeroClassId)).toMatchObject({ average: 0, provisional: false });
+  const home = await (await student.get('/api/student/home')).json();
+  expect(home.assessments.find((item: { id: string }) => item.id === activityId).attempts[0].grade).toBeNull();
+  expect(JSON.stringify(home)).not.toMatch(/autoScores|"review"|answerKey|Feedback interno/);
   expect(JSON.stringify(data)).not.toMatch(/Outro aluno privado|Turma privada|Título retirado|Feedback interno|Comentário interno|answerKey|autoScores|"review"|passwordHash|"annotations"|\?aluno=/);
   const otherData = await (await other.get(`/api/student/grades?studentId=${studentId}&classId=${zeroClassId}`)).json(); expect(otherData.classes.some((item: { classId: string }) => item.classId === zeroClassId)).toBe(false); expect(otherData.classes.every((item: { average: number | null }) => item.average === null)).toBe(true);
   expect((await student.get(`/api/gradebook/${classId}`)).status()).toBe(403);
@@ -60,6 +63,12 @@ test('Meu início exibe médias por turma, atualiza após liberação e abre not
   await page.locator('.student-class-filter select').selectOption(classId); await expect(grades.locator('.student-grade-card')).toHaveCount(1); await page.setViewportSize({ width: 390, height: 844 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.evaluate(() => window.scrollTo(0, 0)); await page.screenshot({ path: 'test-results/aluno-medias-mobile.png', fullPage: true, animations: 'disabled' });
   await card.getByRole('button', { name: 'Ver minhas notas', exact: true }).click(); dialog = page.getByRole('dialog', { name: 'Minhas notas de Minha turma principal', exact: true }); await expect(dialog).toContainText('8,20'); await expect(dialog.getByRole('link', { name: 'Ver correção', exact: true })).toHaveCount(3); expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true); await page.screenshot({ path: 'test-results/aluno-lista-notas-mobile.png', animations: 'disabled' }); await page.keyboard.press('Escape');
   await page.locator('.student-class-filter select').selectOption(zeroClassId); const zero = grades.locator('.student-grade-card'); await expect(zero.locator('.student-grade-overall')).toContainText('0,00'); await expect(zero.locator('.student-grade-overall')).not.toContainText('Aguardando notas');
+  await page.goto(`/?area=atividades&turma=${classId}`);
+  const activity = page.locator('.student-resource').filter({ has: page.getByRole('heading', { name: 'Atividade com nota oculta', exact: true }) });
+  const exam = page.locator('.student-resource').filter({ has: page.getByRole('heading', { name: 'Prova com nota oculta', exact: true }) });
+  await expect(activity.locator('.student-card-grade')).toHaveText('Nota: 6,00 / 10Tentativa 1'); await expect(exam.locator('.student-card-grade')).toHaveText('Nota: 10,00 / 10Tentativa 1');
+  await expect(page.locator('.student-resource').filter({ hasText: 'Atividade aguardando correção' }).locator('.student-card-grade')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/notas-cartoes-mobile.png', fullPage: true, animations: 'disabled' });
   await context.close();
 });
 
@@ -71,4 +80,5 @@ test('reentrega e nova tentativa voltam a aguardar correção e notas ocultadas 
   main = (await (await student.get('/api/student/grades')).json()).classes.find((item: { classId: string }) => item.classId === classId); expect(main.average).toBe(6); expect(main.items.find((item: { id: string }) => item.id === testId).grade).toBeNull();
   expect((await teacher.post(`/api/assessments/items/${activityId}/settings`, { data: { revision: 1, gradesReleased: false } })).status()).toBe(200);
   main = (await (await student.get('/api/student/grades')).json()).classes.find((item: { classId: string }) => item.classId === classId); expect(main.average).toBeNull(); expect(main.categories.ACTIVITY.average).toBeNull();
+  const home = await (await student.get('/api/student/home')).json(); expect(home.assessments.find((item: { id: string }) => item.id === activityId).attempts[0].grade).toBeNull(); expect(home.assessments.find((item: { id: string }) => item.id === testId).attempts[0].grade).toBeNull();
 });

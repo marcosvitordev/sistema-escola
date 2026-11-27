@@ -8,7 +8,7 @@ export type StudentMaterial = {
 export type StudentAssessment = {
   id: string; title: string; kind: 'TEST' | 'ACTIVITY'; classId: string; lessonTitle: string;
   scheduledAt?: string | null; createdAt?: string; dueAt: string | null; maxAttempts: number; gradesReleased: boolean; questionCount: number;
-  attempts: { id: string; number: number; submittedAt: string | null; gradedAt: string | null; updatedAt: string }[];
+  attempts: { id: string; number: number; submittedAt: string | null; gradedAt: string | null; updatedAt: string; grade?: number | null }[];
 };
 export type StudentHomeData = { classes: StudentClass[]; materials: StudentMaterial[]; assessments: StudentAssessment[] };
 
